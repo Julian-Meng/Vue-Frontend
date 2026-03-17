@@ -70,7 +70,7 @@ async function handleLogin() {
     }
 
     ElMessage.success(t('auth.loginSuccess'))
-    await router.push('/api-test')
+      await router.push('/dashboard')
   } catch (error) {
     ElMessage.error(error?.message || t('auth.loginFailed'))
   } finally {
