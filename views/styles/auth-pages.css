@@ -13,30 +13,125 @@ body,
 }
 
 .auth-page {
-  /* 使用视口高度并把 padding 计入盒模型，避免出现多余滚动条。 */
+  /* 左右两列布局，使用视口高度并把 padding 计入盒模型，避免出现多余滚动条。 */
+  position: relative;
   height: 100dvh;
   min-height: 100dvh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
   overflow: hidden;
-  background-image: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+  /* background-image: url('https://loremflickr.com/1920/1080/mountain/all'); */
+  background-image: url(../imgs/background2.jpg);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
 }
 
-.auth-shell {
+.auth-locale-button {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 40;
+  min-width: 68px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.auth-locale-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.62);
+}
+
+/* 左侧 Logo 区域 */
+.auth-logo-side {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.auth-logo-side .auth-brand {
+  text-align: center;
+  color: #fff;
+}
+
+.auth-logo-title {
+  margin: 0;
+  font-family: Megrim, cursive;
+  src: url(../../public/megrim.woff2) format('woff2');
+  font-size: 56px;
+  letter-spacing: 0.5em;
+  font-weight: 300;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  -webkit-text-stroke: 0.3vh rgba(110, 110, 110, 0.379);
+}
+
+.auth-logo-subtitle {
+  margin: 24px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.8em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* 右侧登录容器 */
+.auth-side-container {
+  height: 100dvh;
   width: 100%;
-  max-width: 390px;
+  max-width: 650px;
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* 背景模糊层 */
+.auth-glass-effect {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(30px);
+  /* 使用蒙版实现从左到右的平滑过渡 */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
+  mask-image: linear-gradient(to right, transparent 0%, black 40%);
+}
+
+.auth-shell {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 450px;
   display: grid;
   gap: 28px;
+  padding: 0 64px;
 }
 
 .auth-brand {
   text-align: center;
   color: #fff;
+}
+
+.auth-welcome-title {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: 0.02em;
+  font-weight: 300;
+  text-align: center;
+}
+
+.auth-divider {
+  height: 1px;
+  width: 48px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 16px auto 0;
 }
 
 .auth-title {
@@ -100,6 +195,7 @@ body,
   text-indent: 0.55em;
   font-size: 16px;
   background: #4361ee;
+  margin-top: 8px;
 }
 
 .auth-primary-button:hover {
@@ -112,6 +208,16 @@ body,
   justify-content: space-between;
   gap: 12px;
   padding: 0 8px;
+}
+
+.auth-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 8px;
 }
 
 .auth-checkbox {
@@ -132,6 +238,7 @@ body,
   font-size: 12px;
   color: rgba(255, 255, 255, 0.92);
   text-decoration: none;
+  transition: color 0.2s;
 }
 
 .auth-link:hover {
@@ -139,8 +246,40 @@ body,
   color: #fff;
 }
 
+/* 移动端适配 */
+@media (max-width: 1024px) {
+  .auth-logo-side {
+    display: none;
+  }
+
+  .auth-side-container {
+    max-width: 100%;
+  }
+
+  .auth-glass-effect {
+    -webkit-mask-image: none;
+    mask-image: none;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .auth-shell {
+    max-width: 100%;
+    padding: 0 32px;
+  }
+}
+
 @media (max-width: 640px) {
   .auth-shell {
     max-width: 100%;
+    padding: 0 24px;
+    gap: 20px;
+  }
+
+  .auth-logo-title {
+    font-size: 42px;
+  }
+
+  .auth-welcome-title {
+    font-size: 24px;
   }
 }
