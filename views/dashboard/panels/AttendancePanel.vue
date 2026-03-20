@@ -15,6 +15,10 @@ const records    = ref([])
 const loading    = ref(false)
 const error      = ref('')
 const searchDate = ref('')
+const startDate  = ref('')
+const endDate    = ref('')
+const searchEmpId = ref('')
+const searchDeptId = ref('')
 
 // --- 分页 ---
 const page     = ref(1)
@@ -36,10 +40,14 @@ async function fetchRecords() {
   try {
     const params = {}
     if (searchDate.value) params.date = searchDate.value
+    if (startDate.value) params.start = startDate.value
+    if (endDate.value) params.end = endDate.value
     params.page      = page.value
     params.page_size = pageSize
 
     if (isAdmin()) {
+      if (searchEmpId.value.trim()) params.emp_id = searchEmpId.value.trim()
+      if (searchDeptId.value.trim()) params.dpt_id = searchDeptId.value.trim()
       records.value = await adminApi.searchAttendance(undefined, params)
     } else {
       records.value = await userApi.getMyAttendance(undefined, params)
@@ -129,14 +137,14 @@ onMounted(fetchRecords)
     </div>
 
     <!-- 用户打卡区 -->
-    <div v-if="!isAdmin()" class="checkin-bar">
+    <div v-if="!isAdmin()" class="action-bar">
       <button :disabled="checkinLoading" class="btn btn-primary" @click="doCheckIn">
         {{ checkinLoading ? t('dashboard.attendance.checking') : t('dashboard.attendance.checkIn') }}
       </button>
       <button :disabled="checkoutLoading" class="btn btn-secondary" @click="doCheckOut">
         {{ checkoutLoading ? t('dashboard.attendance.checking') : t('dashboard.attendance.checkOut') }}
       </button>
-      <span v-if="checkinMsg" class="checkin-msg">{{ checkinMsg }}</span>
+      <span v-if="checkinMsg" class="action-bar-message">{{ checkinMsg }}</span>
     </div>
 
     <!-- 搜索栏 -->
@@ -147,8 +155,20 @@ onMounted(fetchRecords)
         class="input"
         placeholder="按日期筛选"
       />
+      <input v-model="startDate" type="date" class="input" placeholder="开始日期" />
+      <input v-model="endDate" type="date" class="input" placeholder="结束日期" />
+      <input v-if="isAdmin()" v-model="searchEmpId" class="input" placeholder="员工工号 (emp_id)" />
+      <input v-if="isAdmin()" v-model="searchDeptId" class="input" placeholder="部门ID (dpt_id)" />
       <button class="btn btn-primary" @click="() => { page = 1; fetchRecords() }">{{ t('dashboard.common.query') }}</button>
-      <button class="btn btn-ghost" @click="() => { searchDate = ''; page = 1; fetchRecords() }">{{ t('dashboard.common.reset') }}</button>
+      <button class="btn btn-ghost" @click="() => {
+        searchDate = ''
+        startDate = ''
+        endDate = ''
+        searchEmpId = ''
+        searchDeptId = ''
+        page = 1
+        fetchRecords()
+      }">{{ t('dashboard.common.reset') }}</button>
     </div>
 
     <div v-if="loading" class="tip">{{ t('dashboard.loading') }}</div>
@@ -207,28 +227,5 @@ onMounted(fetchRecords)
 
 <style scoped>
 @import '../../styles/panel-common.css';
-
-.checkin-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 8px;
-}
-
-.checkin-msg {
-  font-size: 13px;
-  color: #0369a1;
-}
-
-.input-sm {
-  width: 90px;
-  padding: 3px 6px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size: 13px;
-}
+@import '../../styles/dashboard-pages.css';
 </style>

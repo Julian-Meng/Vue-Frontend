@@ -1,12 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getNoticeList, adminApi } from '../../../apis'
+import { formatNoticeListForDashboard } from '../../../utils/noticeFormatter'
 
 const props = defineProps({
   role: { type: String, default: 'user' },
 })
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const isAdmin = () => props.role === 'admin'
 
@@ -20,8 +21,15 @@ const pageSize   = 10
 // 弹窗
 const showModal  = ref(false)
 const editTarget = ref(null) // null = 新建
-const form       = ref({ title: '', content: '' })
+const form       = ref({ title: '', content: '', publisher: '' })
 const saving     = ref(false)
+
+const formattedNotices = computed(() =>
+  formatNoticeListForDashboard(notices.value, {
+    locale: locale.value,
+    maxContentLength: 120,
+  }),
+)
 
 async function fetchNotices() {
   loading.value = true
@@ -41,13 +49,17 @@ async function fetchNotices() {
 
 function openCreate() {
   editTarget.value = null
-  form.value = { title: '', content: '' }
+  form.value = { title: '', content: '', publisher: '' }
   showModal.value  = true
 }
 
 function openEdit(item) {
   editTarget.value = item
-  form.value = { title: item.title ?? '', content: item.content ?? '' }
+  form.value = {
+    title: item.title ?? '',
+    content: item.content ?? '',
+    publisher: item.publisher ?? '',
+  }
   showModal.value = true
 }
 
@@ -107,7 +119,7 @@ onMounted(fetchNotices)
 
     <div v-if="loading" class="tip">{{ t('dashboard.loading') }}</div>
     <div v-else-if="error" class="tip error">{{ error }}</div>
-    <div v-else-if="notices.length === 0" class="tip">{{ t('dashboard.common.noData') }}</div>
+    <div v-else-if="formattedNotices.length === 0" class="tip">{{ t('dashboard.common.noData') }}</div>
     <div v-else class="table-wrap">
       <table class="data-table">
         <thead>
@@ -120,11 +132,11 @@ onMounted(fetchNotices)
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in notices" :key="item.id">
+          <tr v-for="item in formattedNotices" :key="item.id || item.title">
             <td>{{ item.id }}</td>
             <td>{{ item.title }}</td>
-            <td class="cell-truncate">{{ item.content }}</td>
-            <td>{{ item.created_at ?? item.create_time ?? '—' }}</td>
+            <td class="cell-truncate">{{ item.summary || item.content || '—' }}</td>
+            <td>{{ item.createdAtText || '—' }}</td>
             <td v-if="isAdmin()">
               <button class="btn-link" @click="openEdit(item)">编辑</button>
               <button class="btn-link danger" @click="deleteNotice(item.id)">删除</button>
@@ -137,7 +149,7 @@ onMounted(fetchNotices)
     <div v-if="!loading && !error" class="pagination">
       <button :disabled="page <= 1" class="btn btn-ghost" @click="prevPage">{{ t('dashboard.common.prevPage') }}</button>
       <span class="page-info">{{ t('dashboard.common.pageN', { page }) }}</span>
-      <button :disabled="notices.length < pageSize" class="btn btn-ghost" @click="nextPage">{{ t('dashboard.common.nextPage') }}</button>
+      <button :disabled="formattedNotices.length < pageSize" class="btn btn-ghost" @click="nextPage">{{ t('dashboard.common.nextPage') }}</button>
     </div>
 
     <!-- 弹窗 -->
@@ -150,10 +162,14 @@ onMounted(fetchNotices)
         </div>
         <div class="form-row">
           <label>内容</label>
-          <textarea v-model="form.content" class="input textarea" rows="5" placeholder="请输入公告内容" />
+          <textarea v-model="form.content" class="input" rows="5" placeholder="请输入公告内容" />
+        </div>
+        <div class="form-row">
+          <label>发布人</label>
+          <input v-model="form.publisher" class="input" placeholder="可选，留空由后端处理" />
         </div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" @click="closeModal">{{ t('dashboard.common.cancel') }}</button>
+          <button class="btn btn-secondary" @click="closeModal">{{ t('dashboard.common.cancel') }}</button>
           <button :disabled="saving" class="btn btn-primary" @click="saveNotice">
             {{ saving ? t('dashboard.notice.saving') : t('dashboard.common.save') }}
           </button>
@@ -165,17 +181,5 @@ onMounted(fetchNotices)
 
 <style scoped>
 @import '../../styles/panel-common.css';
-
-.cell-truncate {
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.textarea {
-  resize: vertical;
-  width: 100%;
-  box-sizing: border-box;
-}
+@import '../../styles/dashboard-pages.css';
 </style>

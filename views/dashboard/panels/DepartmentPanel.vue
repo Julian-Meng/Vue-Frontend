@@ -17,7 +17,7 @@ const pageSize    = 10
 
 const showModal   = ref(false)
 const editTarget  = ref(null)
-const form        = ref({ name: '', description: '' })
+const form        = ref({ name: '', description: '', full_num: 20 })
 const saving      = ref(false)
 
 async function fetchDepartments() {
@@ -38,13 +38,17 @@ async function fetchDepartments() {
 
 function openCreate() {
   editTarget.value = null
-  form.value       = { name: '', description: '' }
+  form.value       = { name: '', description: '', full_num: 20 }
   showModal.value  = true
 }
 
 function openEdit(item) {
   editTarget.value = item
-  form.value       = { name: item.name ?? '', description: item.description ?? '' }
+  form.value       = {
+    name: item.name ?? '',
+    description: item.description ?? '',
+    full_num: Number(item.full_num ?? item.max_people ?? 20),
+  }
   showModal.value  = true
 }
 
@@ -108,6 +112,7 @@ onMounted(fetchDepartments)
             <th>ID</th>
             <th>部门名称</th>
             <th>描述</th>
+            <th>人数上限</th>
             <th>负责人</th>
             <th>创建时间</th>
             <th>操作</th>
@@ -118,6 +123,7 @@ onMounted(fetchDepartments)
             <td>{{ item.id }}</td>
             <td>{{ item.name }}</td>
             <td>{{ item.description ?? '—' }}</td>
+            <td>{{ item.full_num ?? item.max_people ?? '—' }}</td>
             <td>{{ item.manager ?? item.manager_name ?? '—' }}</td>
             <td>{{ item.created_at ?? item.create_time ?? '—' }}</td>
             <td>
@@ -145,6 +151,10 @@ onMounted(fetchDepartments)
         <div class="form-row">
           <label>描述</label>
           <input v-model="form.description" class="input" placeholder="可选，部门描述" />
+        </div>
+        <div class="form-row">
+          <label>人数上限</label>
+          <input v-model.number="form.full_num" class="input" type="number" min="1" placeholder="默认20" />
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" @click="showModal = false">{{ t('dashboard.common.cancel') }}</button>

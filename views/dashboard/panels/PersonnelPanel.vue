@@ -19,7 +19,7 @@ const pageSize  = 10
 // 审批弹窗（管理员）
 const showApprove  = ref(false)
 const approveTarget = ref(null)
-const approveForm  = ref({ action: 'approve', remark: '' })
+const approveForm  = ref({ action: 'approve', approver: '', remark: '' })
 const approving    = ref(false)
 
 // 新建申请弹窗（用户）
@@ -46,18 +46,20 @@ async function fetchList() {
 
 function openApprove(item) {
   approveTarget.value = item
-  approveForm.value   = { action: 'approve', remark: '' }
+  approveForm.value   = { action: 'approve', approver: '', remark: '' }
   showApprove.value   = true
 }
 
 async function submitApprove() {
   approving.value = true
   try {
-    await adminApi.approvePersonnel(undefined, {
+    const payload = {
       id:     approveTarget.value.id,
-      action: approveForm.value.action,
-      remark: approveForm.value.remark,
-    })
+      approver: approveForm.value.approver || 'admin',
+      approve: approveForm.value.action === 'approve',
+    }
+    if (approveForm.value.remark?.trim()) payload.remark = approveForm.value.remark.trim()
+    await adminApi.approvePersonnel(undefined, payload)
     showApprove.value = false
     await fetchList()
   } catch (e) {
@@ -147,7 +149,7 @@ onMounted(fetchList)
     </template>
 
     <template v-else>
-      <p class="user-hint">如需申请部门调动、岗位变更等，请点击「提交申请」按钮。</p>
+      <p class="text-muted" style="margin-top: 8px;">如需申请部门调动、岗位变更等，请点击「提交申请」按钮。</p>
     </template>
 
     <!-- 审批弹窗 -->
@@ -160,6 +162,10 @@ onMounted(fetchList)
             <option value="approve">批准</option>
             <option value="reject">拒绝</option>
           </select>
+        </div>
+        <div class="form-row">
+          <label>审批人</label>
+          <input v-model="approveForm.approver" class="input" placeholder="如：admin" />
         </div>
         <div class="form-row">
           <label>备注</label>
@@ -192,7 +198,7 @@ onMounted(fetchList)
         </div>
         <div class="form-row">
           <label>原因说明</label>
-          <textarea v-model="createForm.reason" class="input textarea" rows="3" placeholder="请简述变更原因" />
+          <textarea v-model="createForm.reason" class="input" rows="3" placeholder="请简述变更原因" />
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" @click="showCreate = false">{{ t('dashboard.common.cancel') }}</button>
@@ -207,49 +213,4 @@ onMounted(fetchList)
 
 <style scoped>
 @import '../../styles/panel-common.css';
-
-.user-hint {
-  color: #64748b;
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-.status-badge {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.status-badge.approve,
-.status-badge.approved,
-.status-badge.批准 {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.status-badge.reject,
-.status-badge.rejected,
-.status-badge.拒绝 {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.status-badge.pending,
-.status-badge.待审批 {
-  background: #fef9c3;
-  color: #854d0e;
-}
-
-.text-muted {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.textarea {
-  resize: vertical;
-  width: 100%;
-  box-sizing: border-box;
-}
 </style>

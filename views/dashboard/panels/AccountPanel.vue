@@ -17,7 +17,7 @@ const pageSize  = 10
 
 const showModal  = ref(false)
 const editTarget = ref(null)
-const form       = ref({ username: '', password: '', role: 'staff' })
+const form       = ref({ username: '', password: '', role: 'staff', status: 1 })
 const saving     = ref(false)
 
 async function fetchAccounts() {
@@ -38,13 +38,18 @@ async function fetchAccounts() {
 
 function openCreate() {
   editTarget.value = null
-  form.value       = { username: '', password: '', role: 'staff' }
+  form.value       = { username: '', password: '', role: 'staff', status: 1 }
   showModal.value  = true
 }
 
 function openEdit(item) {
   editTarget.value = item
-  form.value       = { username: item.username ?? '', password: '', role: item.role ?? 'staff' }
+  form.value       = {
+    username: item.username ?? '',
+    password: '',
+    role: item.role ?? 'staff',
+    status: Number(item.status ?? 1),
+  }
   showModal.value  = true
 }
 
@@ -53,7 +58,11 @@ async function saveAccount() {
   if (!editTarget.value && !form.value.password.trim()) return alert('新建账号请填写密码')
   saving.value = true
   try {
-    const payload = { username: form.value.username, role: form.value.role }
+    const payload = {
+      username: form.value.username,
+      role: form.value.role,
+      status: Number(form.value.status),
+    }
     if (form.value.password) payload.password = form.value.password
     if (editTarget.value) {
       await adminApi.updateAccount(undefined, editTarget.value.id, payload)
@@ -81,6 +90,14 @@ async function deleteAccount(id) {
 
 function prevPage() { if (page.value > 1) { page.value--; fetchAccounts() } }
 function nextPage() { if (accounts.value.length >= pageSize) { page.value++; fetchAccounts() } }
+
+function roleBadgeClass(roleName) {
+  const normalized = String(roleName || '').toLowerCase()
+  if (normalized === 'admin' || normalized === 'staff' || normalized === 'user') {
+    return normalized
+  }
+  return 'user'
+}
 
 onMounted(fetchAccounts)
 </script>
@@ -111,6 +128,7 @@ onMounted(fetchAccounts)
             <th>ID</th>
             <th>用户名</th>
             <th>角色</th>
+            <th>状态</th>
             <th>创建时间</th>
             <th>操作</th>
           </tr>
@@ -120,8 +138,9 @@ onMounted(fetchAccounts)
             <td>{{ item.id }}</td>
             <td>{{ item.username }}</td>
             <td>
-              <span class="role-tag" :class="item.role">{{ item.role }}</span>
+              <span :class="['badge', roleBadgeClass(item.role)]">{{ item.role }}</span>
             </td>
+            <td>{{ Number(item.status ?? 1) === 1 ? '启用' : '禁用' }}</td>
             <td>{{ item.created_at ?? item.create_time ?? '—' }}</td>
             <td>
               <button class="btn-link" @click="openEdit(item)">编辑</button>
@@ -156,6 +175,13 @@ onMounted(fetchAccounts)
             <option value="admin">管理员 (admin)</option>
           </select>
         </div>
+        <div class="form-row">
+          <label>状态</label>
+          <select v-model.number="form.status" class="input">
+            <option :value="1">启用</option>
+            <option :value="0">禁用</option>
+          </select>
+        </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" @click="showModal = false">{{ t('dashboard.common.cancel') }}</button>
           <button :disabled="saving" class="btn btn-primary" @click="saveAccount">
@@ -169,22 +195,4 @@ onMounted(fetchAccounts)
 
 <style scoped>
 @import '../../styles/panel-common.css';
-
-.role-tag {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.role-tag.admin {
-  background: #fce7f3;
-  color: #be185d;
-}
-
-.role-tag.staff {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
 </style>
