@@ -5,6 +5,7 @@ import {
   clearAuthToken,
   getStoredToken,
   saveAuthToken,
+  setTokenPersistence,
   setTokenResolver,
 } from '../../apis/request'
 
@@ -21,13 +22,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 写入新的登录 token，并同步持久化。
-  function setToken(nextToken) {
+  function setToken(nextToken, { remember = true } = {}) {
     const normalizedToken = typeof nextToken === 'string' ? nextToken.trim() : ''
 
     token.value = normalizedToken
 
     if (normalizedToken) {
-      saveAuthToken(normalizedToken)
+      const persistence = remember ? 'local' : 'session'
+      setTokenPersistence(persistence)
+      saveAuthToken(normalizedToken, { persistence })
       return
     }
 

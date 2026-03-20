@@ -1,17 +1,26 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Hide, View } from '@element-plus/icons-vue'
 
 import { register } from '../apis/public'
 import { toggleLocale } from '../utils/i18n'
+import AuthAnimatedCharacters from './components/AuthAnimatedCharacters.vue'
+import AuthQuoteCard from './components/AuthQuoteCard.vue'
 import './styles/auth-pages.css'
 
 const router = useRouter()
 const { t } = useI18n()
 
 const loading = ref(false)
+const activeField = ref('')
+const showPassword = ref(false)
+const hitokoto = ref(t('auth.loadingQuote'))
+const hitokotoFrom = ref('')
+
+const passwordLength = computed(() => registerForm.password.length)
 
 const registerForm = reactive({
   username: '',
@@ -56,6 +65,31 @@ async function handleRegister() {
 function goToLogin() {
   router.push('/login')
 }
+
+function handleFieldFocus(field) {
+  activeField.value = field
+}
+
+function handleFieldBlur() {
+  activeField.value = ''
+}
+
+async function fetchHitokoto() {
+  try {
+    const response = await fetch('https://v1.hitokoto.cn/?encode=json')
+    const payload = await response.json()
+
+    hitokoto.value = payload?.hitokoto || t('auth.fallbackQuote')
+    hitokotoFrom.value = payload?.from || ''
+  } catch {
+    hitokoto.value = t('auth.fallbackQuote')
+    hitokotoFrom.value = t('auth.fallbackFrom')
+  }
+}
+
+onMounted(() => {
+  fetchHitokoto()
+})
 </script>
 
 <template>
@@ -64,67 +98,98 @@ function goToLogin() {
       {{ t('common.switchTo') }}
     </button>
 
-    <div class="auth-logo-side">
-      <div class="auth-brand">
-        <h1 class="auth-logo-title">Vue CMS</h1>
-        <p class="auth-logo-subtitle">{{ t('auth.logoSub') }}</p>
-      </div>
-    </div>
+    <div class="auth-shell">
+      <section class="auth-visual-panel">
+        <h1 class="auth-visual-title">Vue CMS</h1>
+        <AuthQuoteCard :quote="hitokoto" :from="hitokotoFrom" />
+        <AuthAnimatedCharacters
+          :active-field="activeField"
+          :show-password="showPassword"
+          :password-length="passwordLength"
+        />
+      </section>
 
-    <div class="auth-side-container">
-      <div class="auth-glass-effect"></div>
-
-      <div class="auth-shell">
+      <section class="auth-form-panel">
         <div class="auth-brand">
           <h2 class="auth-welcome-title">{{ t('auth.registerTitle') }}</h2>
-          <div class="auth-divider"></div>
+          <p class="auth-head-sub">{{ t('auth.registerSubtitle') }}</p>
         </div>
 
-        <el-form class="auth-form" :model="registerForm" @submit.prevent="handleRegister">
-          <el-form-item>
-            <el-input
-              v-model="registerForm.username"
-              :placeholder="t('auth.username')"
-              autocomplete="username"
-              class="auth-input"
-              size="large"
-            />
-          </el-form-item>
+        <form class="auth-form" @submit.prevent="handleRegister">
+          <div class="auth-role-row">
+            <button
+              class="auth-role-pill"
+              type="button"
+              :class="{ active: registerForm.role === 'staff' }"
+              @click="registerForm.role = 'staff'"
+            >
+              Staff
+            </button>
+            <button
+              class="auth-role-pill"
+              type="button"
+              :class="{ active: registerForm.role === 'admin' }"
+              @click="registerForm.role = 'admin'"
+            >
+              Admin
+            </button>
+          </div>
 
-          <el-form-item>
-            <el-input
+          <label class="auth-label" for="register-username">{{ t('auth.username') }}</label>
+          <input
+            id="register-username"
+            v-model="registerForm.username"
+            :placeholder="t('auth.username')"
+            autocomplete="username"
+            class="auth-native-input"
+            type="text"
+            @focus="handleFieldFocus('username')"
+            @blur="handleFieldBlur"
+          />
+
+          <label class="auth-label" for="register-password">{{ t('auth.password') }}</label>
+          <div class="auth-password-wrap">
+            <input
+              id="register-password"
               v-model="registerForm.password"
               :placeholder="t('auth.password')"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               autocomplete="new-password"
-              show-password
-              class="auth-input"
-              size="large"
+              class="auth-native-input"
+              @focus="handleFieldFocus('password')"
+              @blur="handleFieldBlur"
             />
-          </el-form-item>
+            <button class="auth-ghost-toggle" type="button" @click="showPassword = !showPassword">
+              <el-icon>
+                <Hide v-if="showPassword" />
+                <View v-else />
+              </el-icon>
+            </button>
+          </div>
 
-          <el-form-item>
-            <el-input
-              v-model="registerForm.confirmPassword"
-              :placeholder="t('auth.confirmPassword')"
-              type="password"
-              autocomplete="new-password"
-              show-password
-              class="auth-input"
-              size="large"
-              @keyup.enter="handleRegister"
-            />
-          </el-form-item>
+          <label class="auth-label" for="register-confirm-password">{{ t('auth.confirmPassword') }}</label>
+          <input
+            id="register-confirm-password"
+            v-model="registerForm.confirmPassword"
+            :placeholder="t('auth.confirmPassword')"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            class="auth-native-input"
+            @focus="handleFieldFocus('password')"
+            @blur="handleFieldBlur"
+            @keyup.enter="handleRegister"
+          />
 
-          <el-button class="auth-primary-button" type="primary" size="large" :loading="loading" @click="handleRegister">
-            {{ t('auth.registerButton') }}
-          </el-button>
+          <button class="auth-primary-button" type="submit" :disabled="loading">
+            <span v-if="loading">Loading...</span>
+            <span v-else>{{ t('auth.registerButton') }}</span>
+          </button>
 
           <div class="auth-footer-row">
             <a href="#" class="auth-link" @click.prevent="goToLogin">{{ t('auth.registerBackToLogin') }}</a>
           </div>
-        </el-form>
-      </div>
+        </form>
+      </section>
     </div>
   </div>
 </template>

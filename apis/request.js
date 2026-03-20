@@ -9,21 +9,36 @@ const LEGACY_TOKEN_STORAGE_KEYS = ['token', 'access_token']
 
 let tokenStorageKey = DEFAULT_TOKEN_STORAGE_KEY
 let tokenResolver = null
+let tokenPersistence = 'local'
 
 function canUseLocalStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+}
+
+function canUseSessionStorage() {
+  return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined'
 }
 
 function normalizeToken(token) {
   return typeof token === 'string' ? token.trim() : ''
 }
 
-function getTokenByStorageKey(storageKey) {
-  if (!canUseLocalStorage()) {
+function getStorageByPersistence(persistence) {
+  if (persistence === 'session') {
+    return canUseSessionStorage() ? window.sessionStorage : null
+  }
+
+  return canUseLocalStorage() ? window.localStorage : null
+}
+
+function getTokenByStorageKey(storageKey, persistence) {
+  const storage = getStorageByPersistence(persistence)
+
+  if (!storage) {
     return ''
   }
 
-  return normalizeToken(window.localStorage.getItem(storageKey))
+  return normalizeToken(storage.getItem(storageKey))
 }
 
 function createRequestError(message, extra = {}) {
@@ -47,6 +62,12 @@ export function setTokenResolver(resolver) {
   tokenResolver = typeof resolver === 'function' ? resolver : null
 }
 
+// 设置 token 持久化策略。
+// local: 跨浏览器会话持久化；session: 仅当前标签页会话有效。
+export function setTokenPersistence(persistence = 'local') {
+  tokenPersistence = persistence === 'session' ? 'session' : 'local'
+}
+
 // 清理外部注册的 token 解析器。
 export function clearTokenResolver() {
   tokenResolver = null
@@ -59,11 +80,15 @@ export function getStoredToken() {
     (key, index, keys) => keys.indexOf(key) === index,
   )
 
-  for (const storageKey of candidateKeys) {
-    const storedToken = getTokenByStorageKey(storageKey)
+  const candidatePersistences = ['session', 'local']
 
-    if (storedToken) {
-      return storedToken
+  for (const persistence of candidatePersistences) {
+    for (const storageKey of candidateKeys) {
+      const storedToken = getTokenByStorageKey(storageKey, persistence)
+
+      if (storedToken) {
+        return storedToken
+      }
     }
   }
 
@@ -71,33 +96,56 @@ export function getStoredToken() {
 }
 
 // 将 token 持久化到 localStorage，便于刷新后保留登录态。
-export function saveAuthToken(token) {
-  if (!canUseLocalStorage()) {
-    return
-  }
-
+export function saveAuthToken(token, { persistence = tokenPersistence } = {}) {
   const normalizedToken = normalizeToken(token)
+  const candidateKeys = [tokenStorageKey, ...LEGACY_TOKEN_STORAGE_KEYS].filter(
+    (key, index, keys) => keys.indexOf(key) === index,
+  )
+  const resolvedPersistence = persistence === 'session' ? 'session' : 'local'
+
+  ;['local', 'session'].forEach((storageType) => {
+    const storage = getStorageByPersistence(storageType)
+
+    if (!storage) {
+      return
+    }
+
+    if (storageType !== resolvedPersistence || !normalizedToken) {
+      candidateKeys.forEach((storageKey) => {
+        storage.removeItem(storageKey)
+      })
+    }
+  })
 
   if (!normalizedToken) {
-    window.localStorage.removeItem(tokenStorageKey)
     return
   }
 
-  window.localStorage.setItem(tokenStorageKey, normalizedToken)
+  const storage = getStorageByPersistence(resolvedPersistence)
+
+  if (!storage) {
+    return
+  }
+
+  storage.setItem(tokenStorageKey, normalizedToken)
 }
 
 // 清理已持久化的 token。
 export function clearAuthToken() {
-  if (!canUseLocalStorage()) {
-    return
-  }
-
   const candidateKeys = [tokenStorageKey, ...LEGACY_TOKEN_STORAGE_KEYS].filter(
     (key, index, keys) => keys.indexOf(key) === index,
   )
 
-  candidateKeys.forEach((storageKey) => {
-    window.localStorage.removeItem(storageKey)
+  ;['local', 'session'].forEach((storageType) => {
+    const storage = getStorageByPersistence(storageType)
+
+    if (!storage) {
+      return
+    }
+
+    candidateKeys.forEach((storageKey) => {
+      storage.removeItem(storageKey)
+    })
   })
 }
 

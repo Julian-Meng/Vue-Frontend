@@ -1,12 +1,15 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Hide, View } from '@element-plus/icons-vue'
 
 import { request } from '../apis/request'
 import { useAuthStore } from '../src/stores/auth'
 import { toggleLocale } from '../utils/i18n'
+import AuthAnimatedCharacters from './components/AuthAnimatedCharacters.vue'
+import AuthQuoteCard from './components/AuthQuoteCard.vue'
 import './styles/auth-pages.css'
 
 const router = useRouter()
@@ -15,8 +18,13 @@ const { t } = useI18n()
 
 const loading = ref(false)
 const rememberPassword = ref(true)
+const activeField = ref('')
+const showPassword = ref(false)
+const shakeSignal = ref(0)
 const hitokoto = ref(t('auth.loadingQuote'))
 const hitokotoFrom = ref('')
+
+const passwordLength = computed(() => loginForm.password.length)
 
 // 登录表单。
 const loginForm = reactive({
@@ -36,6 +44,7 @@ function extractToken(payload) {
 
 async function handleLogin() {
   if (!loginForm.username.trim() || !loginForm.password.trim()) {
+    shakeSignal.value += 1
     ElMessage.warning(t('auth.loginMissingFields'))
     return
   }
@@ -61,7 +70,7 @@ async function handleLogin() {
       throw new Error(t('auth.loginTokenMissing'))
     }
 
-    authStore.setToken(token)
+    authStore.setToken(token, { remember: rememberPassword.value })
 
     // 当前认证 store 默认持久化 token。
     // 当用户关闭“记住密码”时，仅做交互提示，不影响接口联调链路。
@@ -72,6 +81,7 @@ async function handleLogin() {
     ElMessage.success(t('auth.loginSuccess'))
       await router.push('/dashboard')
   } catch (error) {
+    shakeSignal.value += 1
     ElMessage.error(error?.message || t('auth.loginFailed'))
   } finally {
     loading.value = false
@@ -95,8 +105,15 @@ function goToRegister() {
   router.push('/register')
 }
 
+function handleFieldFocus(field) {
+  activeField.value = field
+}
+
+function handleFieldBlur() {
+  activeField.value = ''
+}
+
 onMounted(() => {
-  // 每次进入登录页都会重新拉取一言文案，刷新页面也会触发。
   fetchHitokoto()
 })
 </script>
@@ -107,57 +124,72 @@ onMounted(() => {
       {{ t('common.switchTo') }}
     </button>
 
-    <div class="auth-logo-side">
-      <div class="auth-brand">
-        <h1 class="auth-logo-title">Vue CMS</h1>
-        <p class="auth-logo-subtitle">{{ hitokoto }}</p>
-        <small v-if="hitokotoFrom" class="auth-logo-subtitle">- {{ hitokotoFrom }} -</small>
-      </div>
-    </div>
+    <div class="auth-shell">
+      <section class="auth-visual-panel">
+        <h1 class="auth-visual-title">Vue CMS</h1>
+        <AuthQuoteCard :quote="hitokoto" :from="hitokotoFrom" />
+        <AuthAnimatedCharacters
+          :active-field="activeField"
+          :show-password="showPassword"
+          :password-length="passwordLength"
+          :shake-signal="shakeSignal"
+        />
+      </section>
 
-    <div class="auth-side-container">
-      <div class="auth-glass-effect"></div>
-
-      <div class="auth-shell">
+      <section class="auth-form-panel">
         <div class="auth-brand">
           <h2 class="auth-welcome-title">{{ t('auth.loginTitle') }}</h2>
-          <div class="auth-divider"></div>
+          <p class="auth-head-sub">{{ t('auth.loginSubtitle') }}</p>
         </div>
 
-        <el-form class="auth-form" :model="loginForm" @submit.prevent="handleLogin">
-          <el-form-item>
-            <el-input
-              v-model="loginForm.username"
-              :placeholder="t('auth.username')"
-              autocomplete="username"
-              class="auth-input"
-              size="large"
-            />
-          </el-form-item>
+        <form class="auth-form" @submit.prevent="handleLogin">
+          <label class="auth-label" for="login-username">{{ t('auth.username') }}</label>
+          <input
+            id="login-username"
+            v-model="loginForm.username"
+            :placeholder="t('auth.username')"
+            autocomplete="username"
+            class="auth-native-input"
+            type="text"
+            @focus="handleFieldFocus('username')"
+            @blur="handleFieldBlur"
+          />
 
-          <el-form-item>
-            <el-input
+          <label class="auth-label" for="login-password">{{ t('auth.password') }}</label>
+          <div class="auth-password-wrap">
+            <input
+              id="login-password"
               v-model="loginForm.password"
               :placeholder="t('auth.password')"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               autocomplete="current-password"
-              show-password
-              class="auth-input"
-              size="large"
+              class="auth-native-input"
+              @focus="handleFieldFocus('password')"
+              @blur="handleFieldBlur"
               @keyup.enter="handleLogin"
             />
-          </el-form-item>
+            <button class="auth-ghost-toggle" type="button" @click="showPassword = !showPassword">
+              <el-icon>
+                <Hide v-if="showPassword" />
+                <View v-else />
+              </el-icon>
+            </button>
+          </div>
 
-          <el-button class="auth-primary-button" type="primary" size="large" :loading="loading" @click="handleLogin">
-            {{ t('auth.loginButton') }}
-          </el-button>
+          <button class="auth-primary-button" type="submit" :disabled="loading">
+            <span v-if="loading">Loading...</span>
+            <span v-else>{{ t('auth.loginButton') }}</span>
+          </button>
 
           <div class="auth-extra-row">
-            <el-checkbox v-model="rememberPassword" class="auth-checkbox">{{ t('auth.rememberPassword') }}</el-checkbox>
+            <label class="auth-check-wrap">
+              <input v-model="rememberPassword" type="checkbox" />
+              <span>{{ t('auth.rememberPassword') }}</span>
+            </label>
             <a href="#" class="auth-link" @click.prevent="goToRegister">{{ t('auth.createAccount') }}</a>
           </div>
-        </el-form>
-      </div>
+        </form>
+      </section>
     </div>
   </div>
 </template>

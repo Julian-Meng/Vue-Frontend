@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { getStoredToken } from '../../apis/request'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -25,9 +26,24 @@ const router = createRouter({
       {
         path: '/dashboard',
         name: 'dashboard',
+        meta: { requiresAuth: true },
         component: () => import('../../views/DashboardView.vue'),
       },
   ],
+})
+
+router.beforeEach((to) => {
+  const hasToken = Boolean(getStoredToken())
+
+  if (to.meta.requiresAuth && !hasToken) {
+    return '/'
+  }
+
+  if (hasToken && (to.path === '/' || to.path === '/login')) {
+    return '/dashboard'
+  }
+
+  return true
 })
 
 export default router
