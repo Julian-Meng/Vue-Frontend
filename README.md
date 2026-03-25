@@ -1,8 +1,8 @@
 # Vue3 Frontend / 人事管理前端
 
-A Vue 3 frontend project for HR management, including login/register pages and API testing tools.
+A Vue 3 HR management frontend with authentication, role-based dashboard modules, bilingual UI, and API debugging tools.
 
-这是一个基于 Vue 3 的人事管理前端项目，包含登录/注册页面与接口测试功能。
+这是一个基于 Vue 3 的人事管理前端项目，已实现认证、按角色展示的仪表盘模块、中英文界面与接口调试工具。
 
 ## Tech Stack / 技术栈
 
@@ -10,6 +10,7 @@ A Vue 3 frontend project for HR management, including login/register pages and A
 - Vue Router
 - Pinia
 - Element Plus
+- vue-i18n
 - Vite
 - JavaScript (ES Modules)
 
@@ -22,6 +23,10 @@ This frontend is designed to work with the following backend project:
 - https://github.com/Julian-Meng/Gin-Backend
 
 ## Quick Start / 快速开始
+
+Recommended Node.js version: `^20.19.0 || >=22.12.0`.
+
+推荐使用 Node.js 版本：`^20.19.0 || >=22.12.0`。
 
 ### 1) Install dependencies / 安装依赖
 
@@ -59,15 +64,19 @@ npm run preview
 
 ## Project Notes / 项目说明
 
-- Default route points to the login page.
-- Register page is available and defaults new users to `staff` role.
-- API test page is available at `/api-test` for integration debugging.
-- Token auth is automatically handled by the request layer (Pinia + localStorage fallback).
+- Login/register flow is available, and token state is persisted via Pinia + localStorage fallback.
+- Router guards are enabled: unauthenticated users are redirected to `/`, authenticated users entering `/` are redirected to `/dashboard`.
+- Dashboard is online with overview, attendance, notices, profile, permission matrix, and AI chat panels.
+- Admin role has additional management panels (employees, departments, accounts) and can review personnel changes; regular users can submit personnel change requests.
+- UI supports `zh-CN` / `en-US` switching and remembers locale in localStorage.
+- API test page is available at `/api-test`, with grouped operations for session/public/admin/user APIs and manual token tools.
 
-- 默认路由为登录页。
-- 已提供注册页，新建账号默认使用 `staff` 权限。
-- 提供 `/api-test` 接口测试页，便于联调。
-- 请求层自动注入 Token（优先 Pinia，回退 localStorage）。
+- 已实现登录/注册流程，Token 状态由 Pinia 管理并回退 localStorage 持久化。
+- 已启用路由守卫：未登录访问受保护页面会回到 `/`，已登录访问 `/` 会自动跳转到 `/dashboard`。
+- 已上线仪表盘模块：概览、考勤、公告、个人档案、权限矩阵、AI 对话。
+- 管理员具备额外管理面板（员工、部门、账号）并可审批人事变更；普通用户可提交人事变更申请。
+- 界面支持 `zh-CN` / `en-US` 双语切换，并在 localStorage 记忆语言设置。
+- 提供 `/api-test` 接口测试页，按会话/公共/管理员/用户分组，并支持手动 Token 工具。
 
 ## License / 许可证
 
