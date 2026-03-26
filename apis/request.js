@@ -151,8 +151,17 @@ export function clearAuthToken() {
 
 function buildQueryString(params = {}) {
   const searchParams = new URLSearchParams()
+  const normalizedParams = { ...params }
 
-  Object.entries(params).forEach(([key, value]) => {
+  // 兼容后端分页参数命名差异：同时支持 pageSize 与 page_size。
+  if (normalizedParams.page_size !== undefined && normalizedParams.pageSize === undefined) {
+    normalizedParams.pageSize = normalizedParams.page_size
+  }
+  if (normalizedParams.pageSize !== undefined && normalizedParams.page_size === undefined) {
+    normalizedParams.page_size = normalizedParams.pageSize
+  }
+
+  Object.entries(normalizedParams).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') {
       return
     }

@@ -11,7 +11,6 @@ const { t } = useI18n()
 const accounts  = ref([])
 const loading   = ref(false)
 const error     = ref('')
-const keyword   = ref('')
 const page      = ref(1)
 const pageSize  = 10
 
@@ -25,7 +24,6 @@ async function fetchAccounts() {
   error.value    = ''
   try {
     const params = { page: page.value, page_size: pageSize }
-    if (keyword.value) params.username = keyword.value
     accounts.value = await adminApi.getAccountList(undefined, params)
     if (!Array.isArray(accounts.value)) accounts.value = []
   } catch (e) {
@@ -113,9 +111,7 @@ onMounted(fetchAccounts)
     </div>
 
     <div class="toolbar">
-      <input v-model="keyword" class="input" placeholder="用户名搜索" @keyup.enter="() => { page = 1; fetchAccounts() }" />
       <button class="btn btn-primary" @click="() => { page = 1; fetchAccounts() }">{{ t('dashboard.common.query') }}</button>
-      <button class="btn btn-ghost" @click="() => { keyword = ''; page = 1; fetchAccounts() }">{{ t('dashboard.common.reset') }}</button>
     </div>
 
     <div v-if="loading" class="tip">{{ t('dashboard.loading') }}</div>

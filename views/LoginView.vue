@@ -73,10 +73,6 @@ async function handleLogin() {
     authStore.setToken(token, { remember: rememberPassword.value })
 
     // 当前认证 store 默认持久化 token。
-    // 当用户关闭“记住密码”时，仅做交互提示，不影响接口联调链路。
-    if (!rememberPassword.value) {
-      ElMessage.info(t('auth.loginPersistInfo'))
-    }
 
     ElMessage.success(t('auth.loginSuccess'))
       await router.push('/dashboard')

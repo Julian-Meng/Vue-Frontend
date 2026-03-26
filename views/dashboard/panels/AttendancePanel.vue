@@ -14,7 +14,6 @@ const isAdmin = () => props.role === 'admin'
 const records    = ref([])
 const loading    = ref(false)
 const error      = ref('')
-const searchDate = ref('')
 const startDate  = ref('')
 const endDate    = ref('')
 const searchEmpId = ref('')
@@ -39,7 +38,6 @@ async function fetchRecords() {
   error.value   = ''
   try {
     const params = {}
-    if (searchDate.value) params.date = searchDate.value
     if (startDate.value) params.start = startDate.value
     if (endDate.value) params.end = endDate.value
     params.page      = page.value
@@ -149,19 +147,12 @@ onMounted(fetchRecords)
 
     <!-- 搜索栏 -->
     <div class="toolbar">
-      <input
-        v-model="searchDate"
-        type="date"
-        class="input"
-        placeholder="按日期筛选"
-      />
       <input v-model="startDate" type="date" class="input" placeholder="开始日期" />
       <input v-model="endDate" type="date" class="input" placeholder="结束日期" />
       <input v-if="isAdmin()" v-model="searchEmpId" class="input" placeholder="员工工号 (emp_id)" />
       <input v-if="isAdmin()" v-model="searchDeptId" class="input" placeholder="部门ID (dpt_id)" />
       <button class="btn btn-primary" @click="() => { page = 1; fetchRecords() }">{{ t('dashboard.common.query') }}</button>
       <button class="btn btn-ghost" @click="() => {
-        searchDate = ''
         startDate = ''
         endDate = ''
         searchEmpId = ''

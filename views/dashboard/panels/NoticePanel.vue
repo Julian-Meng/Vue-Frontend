@@ -14,7 +14,6 @@ const isAdmin = () => props.role === 'admin'
 const notices    = ref([])
 const loading    = ref(false)
 const error      = ref('')
-const keyword    = ref('')
 const page       = ref(1)
 const pageSize   = 10
 
@@ -36,7 +35,6 @@ async function fetchNotices() {
   error.value   = ''
   try {
     const params = { page: page.value, page_size: pageSize }
-    if (keyword.value) params.keyword = keyword.value
     notices.value = await getNoticeList(params)
     if (!Array.isArray(notices.value)) notices.value = []
   } catch (e) {
@@ -112,9 +110,7 @@ onMounted(fetchNotices)
     </div>
 
     <div class="toolbar">
-      <input v-model="keyword" class="input" placeholder="搜索关键词" @keyup.enter="() => { page = 1; fetchNotices() }" />
       <button class="btn btn-primary" @click="() => { page = 1; fetchNotices() }">{{ t('dashboard.common.query') }}</button>
-      <button class="btn btn-ghost" @click="() => { keyword = ''; page = 1; fetchNotices() }">{{ t('dashboard.common.reset') }}</button>
     </div>
 
     <div v-if="loading" class="tip">{{ t('dashboard.loading') }}</div>

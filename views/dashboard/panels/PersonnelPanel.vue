@@ -24,7 +24,7 @@ const approving    = ref(false)
 
 // 新建申请弹窗（用户）
 const showCreate  = ref(false)
-const createForm  = ref({ change_type: '', reason: '', old_dept: '', new_dept: '' })
+const createForm  = ref({ emp_id: '', change_type: 1, target_dpt: '', description: '' })
 const creating    = ref(false)
 
 async function fetchList() {
@@ -70,11 +70,17 @@ async function submitApprove() {
 }
 
 async function submitCreate() {
-  if (!createForm.value.change_type.trim()) return alert('请填写变更类型')
+  if (!String(createForm.value.emp_id || '').trim()) return alert('请输入工号')
   creating.value = true
   try {
-    await userApi.createChangeRequest(undefined, createForm.value)
+    await userApi.createChangeRequest(undefined, {
+      emp_id: String(createForm.value.emp_id || '').trim(),
+      change_type: Number(createForm.value.change_type),
+      target_dpt: createForm.value.target_dpt === '' ? 0 : Number(createForm.value.target_dpt),
+      description: String(createForm.value.description || '').trim(),
+    })
     showCreate.value = false
+    createForm.value = { emp_id: '', change_type: 1, target_dpt: '', description: '' }
     alert('申请已提交')
   } catch (e) {
     alert(e?.message || '提交失败')
@@ -185,20 +191,24 @@ onMounted(fetchList)
       <div class="modal-box">
         <h3 class="modal-title">提交人事变更申请</h3>
         <div class="form-row">
+          <label>工号</label>
+          <input v-model="createForm.emp_id" class="input" placeholder="请输入本人工号" />
+        </div>
+        <div class="form-row">
           <label>变更类型</label>
-          <input v-model="createForm.change_type" class="input" placeholder="如：部门调动、岗位变更" />
+          <select v-model.number="createForm.change_type" class="input">
+            <option :value="1">调部门</option>
+            <option :value="2">调岗</option>
+            <option :value="3">离职</option>
+          </select>
         </div>
         <div class="form-row">
-          <label>原部门</label>
-          <input v-model="createForm.old_dept" class="input" placeholder="可选" />
+          <label>目标部门ID</label>
+          <input v-model="createForm.target_dpt" class="input" placeholder="可选，不填默认0" />
         </div>
         <div class="form-row">
-          <label>新部门</label>
-          <input v-model="createForm.new_dept" class="input" placeholder="可选" />
-        </div>
-        <div class="form-row">
-          <label>原因说明</label>
-          <textarea v-model="createForm.reason" class="input" rows="3" placeholder="请简述变更原因" />
+          <label>描述</label>
+          <textarea v-model="createForm.description" class="input" rows="3" placeholder="请简述变更说明" />
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" @click="showCreate = false">{{ t('dashboard.common.cancel') }}</button>

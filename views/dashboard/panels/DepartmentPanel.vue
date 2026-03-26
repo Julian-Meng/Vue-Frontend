@@ -25,7 +25,7 @@ async function fetchDepartments() {
   error.value       = ''
   try {
     const params = { page: page.value, page_size: pageSize }
-    if (keyword.value) params.name = keyword.value
+    if (keyword.value) params.keyword = keyword.value
     departments.value = await adminApi.getDepartmentList(undefined, params)
     if (!Array.isArray(departments.value)) departments.value = []
   } catch (e) {
