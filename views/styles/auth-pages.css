@@ -116,12 +116,12 @@ body,
     margin: 0 auto;
 }
 
-.auth-form>.auth-password-wrap,
-.auth-form>.auth-role-row,
-.auth-form>.auth-extra-row,
-.auth-form>.auth-footer-row,
-.auth-form>.auth-primary-button,
-.auth-form>.auth-native-input {
+.auth-form > .auth-password-wrap,
+.auth-form > .auth-role-row,
+.auth-form > .auth-extra-row,
+.auth-form > .auth-footer-row,
+.auth-form > .auth-primary-button,
+.auth-form > .auth-native-input {
     width: 100%;
 }
 

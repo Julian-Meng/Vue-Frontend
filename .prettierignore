@@ -1,0 +1,5 @@
+node_modules
+dist
+public/*.ico
+public/*.woff2
+package-lock.json

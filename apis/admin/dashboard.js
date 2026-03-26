@@ -1,12 +1,12 @@
-import { request } from '../request'
+import { request } from '../request';
 
-const ADMIN_PREFIX = '/api/admin'
+const ADMIN_PREFIX = '/api/admin';
 
 // 获取管理员仪表盘汇总数据。
 export function getAdminDashboard(token) {
-  return request({
-    url: `${ADMIN_PREFIX}/dashboard`,
-    method: 'GET',
-    token,
-  })
+    return request({
+        url: `${ADMIN_PREFIX}/dashboard`,
+        method: 'GET',
+        token,
+    });
 }
