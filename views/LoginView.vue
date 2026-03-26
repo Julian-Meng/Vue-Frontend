@@ -73,7 +73,6 @@ async function handleLogin() {
     authStore.setToken(token, { remember: rememberPassword.value })
 
     // 当前认证 store 默认持久化 token。
-
     ElMessage.success(t('auth.loginSuccess'))
       await router.push('/dashboard')
   } catch (error) {

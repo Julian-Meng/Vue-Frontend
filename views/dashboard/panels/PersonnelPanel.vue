@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { adminApi, userApi } from '../../../apis'
 
 const props = defineProps({
@@ -61,16 +62,20 @@ async function submitApprove() {
     if (approveForm.value.remark?.trim()) payload.remark = approveForm.value.remark.trim()
     await adminApi.approvePersonnel(undefined, payload)
     showApprove.value = false
+    ElMessage.success('操作成功')
     await fetchList()
   } catch (e) {
-    alert(e?.message || '操作失败')
+    ElMessage.error(e?.message || '操作失败')
   } finally {
     approving.value = false
   }
 }
 
 async function submitCreate() {
-  if (!String(createForm.value.emp_id || '').trim()) return alert('请输入工号')
+  if (!String(createForm.value.emp_id || '').trim()) {
+    ElMessage.warning('请输入工号')
+    return
+  }
   creating.value = true
   try {
     await userApi.createChangeRequest(undefined, {
@@ -81,9 +86,9 @@ async function submitCreate() {
     })
     showCreate.value = false
     createForm.value = { emp_id: '', change_type: 1, target_dpt: '', description: '' }
-    alert('申请已提交')
+    ElMessage.success('申请已提交')
   } catch (e) {
-    alert(e?.message || '提交失败')
+    ElMessage.error(e?.message || '提交失败')
   } finally {
     creating.value = false
   }

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getNoticeList, adminApi } from '../../../apis'
 import { formatNoticeListForDashboard } from '../../../utils/noticeFormatter'
 
@@ -66,7 +67,10 @@ function closeModal() {
 }
 
 async function saveNotice() {
-  if (!form.value.title.trim()) return alert('请填写标题')
+  if (!form.value.title.trim()) {
+    ElMessage.warning('请填写标题')
+    return
+  }
   saving.value = true
   try {
     if (editTarget.value) {
@@ -75,21 +79,32 @@ async function saveNotice() {
       await adminApi.createNotice(undefined, form.value)
     }
     closeModal()
+    ElMessage.success('保存成功')
     await fetchNotices()
   } catch (e) {
-    alert(e?.message || '保存失败')
+    ElMessage.error(e?.message || '保存失败')
   } finally {
     saving.value = false
   }
 }
 
 async function deleteNotice(id) {
-  if (!confirm('确认删除该公告？')) return
+  try {
+    await ElMessageBox.confirm('确认删除该公告？', '确认操作', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
   try {
     await adminApi.deleteNotice(undefined, id)
+    ElMessage.success('删除成功')
     await fetchNotices()
   } catch (e) {
-    alert(e?.message || '删除失败')
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 

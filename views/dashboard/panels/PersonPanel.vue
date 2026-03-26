@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '../../../apis'
 
 const props = defineProps({
@@ -62,7 +63,10 @@ async function fetchPersonDetail() {
 }
 
 async function createPerson() {
-  if (!createForm.value.name.trim()) return alert('请填写姓名')
+  if (!createForm.value.name.trim()) {
+    ElMessage.warning('请填写姓名')
+    return
+  }
   savingCreate.value = true
   try {
     await adminApi.createPerson(undefined, {
@@ -72,57 +76,70 @@ async function createPerson() {
       job: createForm.value.job,
     })
     createForm.value = { name: '', emp_id: '', dpt_id: '', job: '' }
+    ElMessage.success('创建成功')
     await fetchPersons()
   } catch (e) {
-    alert(e?.message || '创建失败')
+    ElMessage.error(e?.message || '创建失败')
   } finally {
     savingCreate.value = false
   }
 }
 
 async function submitChangeDept() {
-  if (!changeDeptForm.value.emp_id.trim()) return alert('请输入工号')
+  if (!changeDeptForm.value.emp_id.trim()) {
+    ElMessage.warning('请输入工号')
+    return
+  }
   updating.value = true
   try {
     await adminApi.changePersonDepartment(undefined, {
       emp_id: changeDeptForm.value.emp_id.trim(),
       dept: changeDeptForm.value.dept,
     })
+    ElMessage.success('修改成功')
     await fetchPersons()
   } catch (e) {
-    alert(e?.message || '修改失败')
+    ElMessage.error(e?.message || '修改失败')
   } finally {
     updating.value = false
   }
 }
 
 async function submitChangeState() {
-  if (!changeStateForm.value.emp_id.trim()) return alert('请输入工号')
+  if (!changeStateForm.value.emp_id.trim()) {
+    ElMessage.warning('请输入工号')
+    return
+  }
   updating.value = true
   try {
     await adminApi.changePersonState(undefined, {
       emp_id: changeStateForm.value.emp_id.trim(),
       state: Number(changeStateForm.value.state),
     })
+    ElMessage.success('修改成功')
     await fetchPersons()
   } catch (e) {
-    alert(e?.message || '修改失败')
+    ElMessage.error(e?.message || '修改失败')
   } finally {
     updating.value = false
   }
 }
 
 async function submitChangeJob() {
-  if (!changeJobForm.value.emp_id.trim()) return alert('请输入工号')
+  if (!changeJobForm.value.emp_id.trim()) {
+    ElMessage.warning('请输入工号')
+    return
+  }
   updating.value = true
   try {
     await adminApi.changePersonJob(undefined, {
       emp_id: changeJobForm.value.emp_id.trim(),
       job: changeJobForm.value.job,
     })
+    ElMessage.success('修改成功')
     await fetchPersons()
   } catch (e) {
-    alert(e?.message || '修改失败')
+    ElMessage.error(e?.message || '修改失败')
   } finally {
     updating.value = false
   }
@@ -130,25 +147,45 @@ async function submitChangeJob() {
 
 async function deleteById() {
   if (!deleteId.value.trim()) return
-  if (!confirm('确认按 ID 删除员工？')) return
+  try {
+    await ElMessageBox.confirm('确认按 ID 删除员工？', '确认操作', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
   try {
     await adminApi.deletePersonById(undefined, deleteId.value.trim())
     deleteId.value = ''
+    ElMessage.success('删除成功')
     await fetchPersons()
   } catch (e) {
-    alert(e?.message || '删除失败')
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 
 async function deleteByEmpId() {
   if (!deleteEmpId.value.trim()) return
-  if (!confirm('确认按工号删除员工？')) return
+  try {
+    await ElMessageBox.confirm('确认按工号删除员工？', '确认操作', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
   try {
     await adminApi.deletePersonByEmpId(undefined, deleteEmpId.value.trim())
     deleteEmpId.value = ''
+    ElMessage.success('删除成功')
     await fetchPersons()
   } catch (e) {
-    alert(e?.message || '删除失败')
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 

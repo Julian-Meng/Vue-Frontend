@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { userApi, adminApi } from '../../../apis'
 
 const props = defineProps({
@@ -37,7 +38,10 @@ async function loadMyProfile() {
 }
 
 async function searchProfile() {
-  if (!empId.value.trim()) return alert('请输入员工工号')
+  if (!empId.value.trim()) {
+    ElMessage.warning('请输入员工工号')
+    return
+  }
   searching.value = true
   error.value     = ''
   try {
@@ -59,8 +63,9 @@ async function saveProfile() {
     await userApi.updateUserProfileById(undefined, id, form.value)
     profile.value = { ...profile.value, ...form.value }
     editing.value = false
+    ElMessage.success('保存成功')
   } catch (e) {
-    alert(e?.message || '保存失败')
+    ElMessage.error(e?.message || '保存失败')
   } finally {
     saving.value = false
   }

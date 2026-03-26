@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '../../../apis'
 
 defineProps({
@@ -53,7 +54,10 @@ function openEdit(item) {
 }
 
 async function saveDept() {
-  if (!form.value.name.trim()) return alert('请填写部门名称')
+  if (!form.value.name.trim()) {
+    ElMessage.warning('请填写部门名称')
+    return
+  }
   saving.value = true
   try {
     if (editTarget.value) {
@@ -62,21 +66,32 @@ async function saveDept() {
       await adminApi.createDepartment(undefined, form.value)
     }
     showModal.value = false
+    ElMessage.success('保存成功')
     await fetchDepartments()
   } catch (e) {
-    alert(e?.message || '保存失败')
+    ElMessage.error(e?.message || '保存失败')
   } finally {
     saving.value = false
   }
 }
 
 async function deleteDept(id) {
-  if (!confirm('确认删除该部门？')) return
+  try {
+    await ElMessageBox.confirm('确认删除该部门？', '确认操作', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
   try {
     await adminApi.deleteDepartment(undefined, id)
+    ElMessage.success('删除成功')
     await fetchDepartments()
   } catch (e) {
-    alert(e?.message || '删除失败')
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 

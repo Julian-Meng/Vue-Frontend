@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '../../../apis'
 
 defineProps({
@@ -52,8 +53,14 @@ function openEdit(item) {
 }
 
 async function saveAccount() {
-  if (!form.value.username.trim()) return alert('请填写用户名')
-  if (!editTarget.value && !form.value.password.trim()) return alert('新建账号请填写密码')
+  if (!form.value.username.trim()) {
+    ElMessage.warning('请填写用户名')
+    return
+  }
+  if (!editTarget.value && !form.value.password.trim()) {
+    ElMessage.warning('新建账号请填写密码')
+    return
+  }
   saving.value = true
   try {
     const payload = {
@@ -68,21 +75,32 @@ async function saveAccount() {
       await adminApi.createAccount(undefined, { ...payload, password: form.value.password })
     }
     showModal.value = false
+    ElMessage.success('保存成功')
     await fetchAccounts()
   } catch (e) {
-    alert(e?.message || '保存失败')
+    ElMessage.error(e?.message || '保存失败')
   } finally {
     saving.value = false
   }
 }
 
 async function deleteAccount(id) {
-  if (!confirm('确认删除该账号？此操作不可恢复！')) return
+  try {
+    await ElMessageBox.confirm('确认删除该账号？此操作不可恢复！', '确认操作', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
   try {
     await adminApi.deleteAccount(undefined, id)
+    ElMessage.success('删除成功')
     await fetchAccounts()
   } catch (e) {
-    alert(e?.message || '删除失败')
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 

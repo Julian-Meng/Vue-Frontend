@@ -1,12 +1,15 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi, userApi } from '../../../apis'
 
 const props = defineProps({
   role: { type: String, default: 'user' },
 })
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const dateDisplayFormat = computed(() => t('dashboard.attendance.dateDisplayFormat'))
 
 const isAdmin = () => props.role === 'admin'
 
@@ -73,21 +76,32 @@ async function saveEdit(id) {
   try {
     await adminApi.updateAttendance(undefined, id, editForm.value)
     editingRow.value = null
+    ElMessage.success('保存成功')
     await fetchRecords()
   } catch (e) {
-    alert(e?.message || '保存失败')
+    ElMessage.error(e?.message || '保存失败')
   } finally {
     saveLoading.value = false
   }
 }
 
 async function deleteRecord(id) {
-  if (!confirm('确认删除该考勤记录？')) return
+  try {
+    await ElMessageBox.confirm('确认删除该考勤记录？', '确认操作', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
   try {
     await adminApi.deleteAttendance(undefined, id)
+    ElMessage.success('删除成功')
     await fetchRecords()
   } catch (e) {
-    alert(e?.message || '删除失败')
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 
@@ -96,10 +110,13 @@ async function doCheckIn() {
   checkinMsg.value     = ''
   try {
     await userApi.checkIn(undefined, {})
-    checkinMsg.value = '上班打卡成功！'
+    checkinMsg.value = '上班打卡成功'
+    ElMessage.success('上班打卡成功')
     await fetchRecords()
   } catch (e) {
-    checkinMsg.value = `打卡失败：${e?.message || '未知错误'}`
+    const message = e?.message || '未知错误'
+    checkinMsg.value = `打卡失败：${message}`
+    ElMessage.error(`打卡失败：${message}`)
   } finally {
     checkinLoading.value = false
   }
@@ -110,10 +127,13 @@ async function doCheckOut() {
   checkinMsg.value      = ''
   try {
     await userApi.checkOut(undefined, {})
-    checkinMsg.value = '下班打卡成功！'
+    checkinMsg.value = '下班打卡成功'
+    ElMessage.success('下班打卡成功')
     await fetchRecords()
   } catch (e) {
-    checkinMsg.value = `打卡失败：${e?.message || '未知错误'}`
+    const message = e?.message || '未知错误'
+    checkinMsg.value = `打卡失败：${message}`
+    ElMessage.error(`打卡失败：${message}`)
   } finally {
     checkoutLoading.value = false
   }
@@ -147,8 +167,24 @@ onMounted(fetchRecords)
 
     <!-- 搜索栏 -->
     <div class="toolbar">
-      <input v-model="startDate" type="date" class="input" placeholder="开始日期" />
-      <input v-model="endDate" type="date" class="input" placeholder="结束日期" />
+      <el-date-picker
+        v-model="startDate"
+        type="date"
+        class="input"
+        :placeholder="t('dashboard.attendance.startDate')"
+        :format="dateDisplayFormat"
+        value-format="YYYY-MM-DD"
+        :key="`start-${locale}`"
+      />
+      <el-date-picker
+        v-model="endDate"
+        type="date"
+        class="input"
+        :placeholder="t('dashboard.attendance.endDate')"
+        :format="dateDisplayFormat"
+        value-format="YYYY-MM-DD"
+        :key="`end-${locale}`"
+      />
       <input v-if="isAdmin()" v-model="searchEmpId" class="input" placeholder="员工工号 (emp_id)" />
       <input v-if="isAdmin()" v-model="searchDeptId" class="input" placeholder="部门ID (dpt_id)" />
       <button class="btn btn-primary" @click="() => { page = 1; fetchRecords() }">{{ t('dashboard.common.query') }}</button>

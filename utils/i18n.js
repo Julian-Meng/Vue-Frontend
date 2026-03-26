@@ -133,6 +133,9 @@ const messages = {
         checking: '打卡中...',
         checkIn: '上班打卡',
         checkOut: '下班打卡',
+        startDate: '开始日期',
+        endDate: '结束日期',
+        dateDisplayFormat: 'YYYY年MM月DD日',
       },
       notice: {
         loadFailed: '加载失败',
@@ -315,6 +318,9 @@ const messages = {
         checking: 'Processing...',
         checkIn: 'Check In',
         checkOut: 'Check Out',
+        startDate: 'Start Date',
+        endDate: 'End Date',
+        dateDisplayFormat: 'YYYY/MM/DD',
       },
       notice: {
         loadFailed: 'Load failed',
