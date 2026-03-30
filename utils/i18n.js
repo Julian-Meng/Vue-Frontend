@@ -48,6 +48,15 @@ const messages = {
             registerSuccess: '创建账号成功，请返回登录',
             registerFailed: '创建账号失败，请稍后重试',
         },
+        notFound: {
+            title: '页面不存在',
+            subtitle: '你访问的页面可能已移动、删除，或地址输入有误。',
+            primaryGoLogin: '返回登录页',
+            primaryGoDashboard: '返回仪表盘',
+            secondaryBack: '返回上一页',
+            visualQuote: '迷路并不危险，站在原地才是。',
+            visualFrom: '404 导航员',
+        },
         dashboard: {
             appTitle: 'Vue CMS',
             loading: '加载中...',
@@ -232,6 +241,15 @@ const messages = {
             registerPasswordMismatch: 'The passwords do not match',
             registerSuccess: 'Account created successfully, please login',
             registerFailed: 'Failed to create account, please try again later',
+        },
+        notFound: {
+            title: 'Page Not Found',
+            subtitle: 'The page may have been moved, removed, or the URL is incorrect.',
+            primaryGoLogin: 'Back to Login',
+            primaryGoDashboard: 'Go to Dashboard',
+            secondaryBack: 'Go Back',
+            visualQuote: 'Being lost is not dangerous, standing still is.',
+            visualFrom: '404 Navigator',
         },
         dashboard: {
             appTitle: 'Vue CMS',
