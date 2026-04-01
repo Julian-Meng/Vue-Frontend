@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi } from '../../../apis';
+import { exportToExcel } from '../../../utils/excelExport';
 
 const props = defineProps({
     role: { type: String, default: 'admin' },
@@ -202,6 +203,40 @@ function nextPage() {
     }
 }
 
+function exportPersons() {
+    if (list.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: `员工数据_page_${page.value}`,
+            sheetName: '员工数据',
+            rows: list.value,
+            columns: [
+                { key: 'id', label: 'ID' },
+                { key: 'emp_id', label: '工号', formatter: (row) => row.emp_id ?? '—' },
+                { key: 'name', label: '姓名', formatter: (row) => row.name ?? '—' },
+                {
+                    key: 'dept',
+                    label: '部门',
+                    formatter: (row) => row.dept ?? row.department ?? row.dpt_id ?? '—',
+                },
+                { key: 'job', label: '岗位', formatter: (row) => row.job ?? '—' },
+                {
+                    key: 'state',
+                    label: '状态',
+                    formatter: (row) => row.state ?? row.status ?? '—',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(() => {
     if (isAdmin()) fetchPersons();
 });
@@ -227,6 +262,9 @@ onMounted(() => {
                     @click="fetchPersonDetail"
                 >
                     查询详情
+                </button>
+                <button class="btn btn-secondary" @click="exportPersons">
+                    {{ t('dashboard.common.exportExcel') }}
                 </button>
                 <input v-model="deleteId" class="input" placeholder="按 ID 删除" />
                 <button class="btn btn-ghost" @click="deleteById">删除</button>

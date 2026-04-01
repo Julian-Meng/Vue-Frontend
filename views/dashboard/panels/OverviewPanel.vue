@@ -251,6 +251,8 @@ onMounted(fetchWeather);
 </template>
 
 <style scoped>
+@import '../../styles/panel-common.css';
+
 .overview-layout {
     display: flex;
     flex-direction: column;

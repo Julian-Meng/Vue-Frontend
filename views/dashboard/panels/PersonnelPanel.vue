@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { adminApi, userApi } from '../../../apis';
+import { exportToExcel } from '../../../utils/excelExport';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -106,6 +107,57 @@ function nextPage() {
     }
 }
 
+function exportPersonnel() {
+    if (!isAdmin() || list.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: `人事申请_page_${page.value}`,
+            sheetName: '人事申请',
+            rows: list.value,
+            columns: [
+                { key: 'id', label: 'ID' },
+                {
+                    key: 'employee_name',
+                    label: '员工',
+                    formatter: (row) => row.employee_name ?? row.emp_id ?? '—',
+                },
+                {
+                    key: 'change_type',
+                    label: '变更类型',
+                    formatter: (row) => row.change_type ?? row.type ?? '—',
+                },
+                {
+                    key: 'old_dept',
+                    label: '原部门',
+                    formatter: (row) => row.old_dept ?? row.old_department ?? '—',
+                },
+                {
+                    key: 'new_dept',
+                    label: '新部门',
+                    formatter: (row) => row.new_dept ?? row.new_department ?? '—',
+                },
+                {
+                    key: 'status',
+                    label: '状态',
+                    formatter: (row) => row.status ?? '—',
+                },
+                {
+                    key: 'created_at',
+                    label: '申请时间',
+                    formatter: (row) => row.created_at ?? row.apply_time ?? '—',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(fetchList);
 </script>
 
@@ -124,6 +176,9 @@ onMounted(fetchList);
             </div>
             <button v-if="!isAdmin()" class="btn btn-primary" @click="showCreate = true">
                 + {{ t('dashboard.personnel.submit') }}
+            </button>
+            <button v-if="isAdmin()" class="btn btn-secondary" @click="exportPersonnel">
+                {{ t('dashboard.common.exportExcel') }}
             </button>
         </div>
 

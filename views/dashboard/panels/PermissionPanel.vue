@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ElMessage } from 'element-plus';
 import { userApi } from '../../../apis';
 import { formatPermissionMatrix } from '../../../utils/permissionFormatter';
+import { exportToExcel } from '../../../utils/excelExport';
 
 const { t } = useI18n();
 
@@ -29,6 +31,49 @@ async function fetchPermissions() {
     }
 }
 
+function exportPermissions() {
+    if (rows.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: '权限矩阵',
+            sheetName: '权限矩阵',
+            rows: rows.value,
+            columns: [
+                { key: 'group', label: '分组', formatter: (row) => row.group || '-' },
+                { key: 'name', label: '权限名', formatter: (row) => row.name || '-' },
+                { key: 'method', label: '方法', formatter: (row) => row.method || 'GET' },
+                {
+                    key: 'path',
+                    label: '路径',
+                    formatter: (row) => row.path || row.key || '-',
+                },
+                {
+                    key: 'allowedRoles',
+                    label: '可访问角色',
+                    formatter: (row) => row.allowedRoles?.join(', ') || '-',
+                },
+                {
+                    key: 'hasAccess',
+                    label: '当前角色是否可访问',
+                    formatter: (row) => (row.hasAccess ? '允许' : '拒绝'),
+                },
+                {
+                    key: 'description',
+                    label: '描述',
+                    formatter: (row) => row.description || '-',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(fetchPermissions);
 </script>
 
@@ -41,6 +86,9 @@ onMounted(fetchPermissions);
             </div>
             <button class="btn btn-primary" @click="fetchPermissions">
                 {{ t('dashboard.permission.refresh') }}
+            </button>
+            <button class="btn btn-secondary" @click="exportPermissions">
+                {{ t('dashboard.common.exportExcel') }}
             </button>
         </div>
 

@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi, userApi } from '../../../apis';
+import { exportToExcel } from '../../../utils/excelExport';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -156,6 +157,52 @@ function nextPage() {
     }
 }
 
+function exportAttendance() {
+    if (records.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: `考勤数据_page_${page.value}`,
+            sheetName: '考勤数据',
+            rows: records.value,
+            columns: [
+                { key: 'id', label: 'ID' },
+                {
+                    key: 'employee',
+                    label: '员工',
+                    formatter: (row) => row.employee_name ?? row.emp_id ?? row.user_id ?? '—',
+                },
+                {
+                    key: 'date',
+                    label: '日期',
+                    formatter: (row) => row.date ?? row.work_date ?? '—',
+                },
+                {
+                    key: 'check_in',
+                    label: '上班时间',
+                    formatter: (row) => row.check_in ?? row.checkin_time ?? '—',
+                },
+                {
+                    key: 'check_out',
+                    label: '下班时间',
+                    formatter: (row) => row.check_out ?? row.checkout_time ?? '—',
+                },
+                {
+                    key: 'status',
+                    label: '状态',
+                    formatter: (row) => row.status ?? '—',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(fetchRecords);
 </script>
 
@@ -250,6 +297,9 @@ onMounted(fetchRecords);
                 "
             >
                 {{ t('dashboard.common.reset') }}
+            </button>
+            <button class="btn btn-secondary" @click="exportAttendance">
+                {{ t('dashboard.common.exportExcel') }}
             </button>
         </div>
 

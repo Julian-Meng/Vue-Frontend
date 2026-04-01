@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { userApi, adminApi } from '../../../apis';
+import { exportToExcel } from '../../../utils/excelExport';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -99,6 +100,27 @@ const profileFields = () => {
 
 const editableKeys = ['name', 'phone', 'email', 'address'];
 
+function exportProfile() {
+    if (!profile.value) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: '员工档案',
+            sheetName: '档案详情',
+            rows: profileFields().map((field) => ({
+                字段: field.label,
+                值: field.value,
+            })),
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(() => {
     if (!isAdmin()) loadMyProfile();
 });
@@ -106,7 +128,12 @@ onMounted(() => {
 
 <template>
     <div class="panel">
-        <h2 class="panel-title">{{ t('dashboard.nav.profile') }}</h2>
+        <div class="panel-header">
+            <h2 class="panel-title">{{ t('dashboard.nav.profile') }}</h2>
+            <button class="btn btn-secondary" @click="exportProfile">
+                {{ t('dashboard.common.exportExcel') }}
+            </button>
+        </div>
 
         <!-- 管理员：通过工号查询 -->
         <div v-if="isAdmin()" class="toolbar" style="margin-bottom: 20px">

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi } from '../../../apis';
+import { exportToExcel } from '../../../utils/excelExport';
 
 defineProps({
     role: { type: String, default: 'admin' },
@@ -125,6 +126,39 @@ function roleBadgeClass(roleName) {
     return 'user';
 }
 
+function exportAccounts() {
+    if (accounts.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: `账号数据_page_${page.value}`,
+            sheetName: '账号数据',
+            rows: accounts.value,
+            columns: [
+                { key: 'id', label: 'ID' },
+                { key: 'username', label: '用户名' },
+                { key: 'role', label: '角色' },
+                {
+                    key: 'status',
+                    label: '状态',
+                    formatter: (row) => (Number(row.status ?? 1) === 1 ? '启用' : '禁用'),
+                },
+                {
+                    key: 'created_at',
+                    label: '创建时间',
+                    formatter: (row) => row.created_at ?? row.create_time ?? '—',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(fetchAccounts);
 </script>
 
@@ -151,6 +185,9 @@ onMounted(fetchAccounts);
                 "
             >
                 {{ t('dashboard.common.query') }}
+            </button>
+            <button class="btn btn-secondary" @click="exportAccounts">
+                {{ t('dashboard.common.exportExcel') }}
             </button>
         </div>
 

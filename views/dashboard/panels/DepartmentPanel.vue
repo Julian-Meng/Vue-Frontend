@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi } from '../../../apis';
+import { exportToExcel } from '../../../utils/excelExport';
 
 defineProps({
     role: { type: String, default: 'admin' },
@@ -108,6 +109,48 @@ function nextPage() {
     }
 }
 
+function exportDepartments() {
+    if (departments.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: `部门数据_page_${page.value}`,
+            sheetName: '部门数据',
+            rows: departments.value,
+            columns: [
+                { key: 'id', label: 'ID' },
+                { key: 'name', label: '部门名称' },
+                {
+                    key: 'description',
+                    label: '描述',
+                    formatter: (row) => row.description ?? '—',
+                },
+                {
+                    key: 'full_num',
+                    label: '人数上限',
+                    formatter: (row) => row.full_num ?? row.max_people ?? '—',
+                },
+                {
+                    key: 'manager',
+                    label: '负责人',
+                    formatter: (row) => row.manager ?? row.manager_name ?? '—',
+                },
+                {
+                    key: 'created_at',
+                    label: '创建时间',
+                    formatter: (row) => row.created_at ?? row.create_time ?? '—',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(fetchDepartments);
 </script>
 
@@ -157,6 +200,9 @@ onMounted(fetchDepartments);
                 "
             >
                 {{ t('dashboard.common.reset') }}
+            </button>
+            <button class="btn btn-secondary" @click="exportDepartments">
+                {{ t('dashboard.common.exportExcel') }}
             </button>
         </div>
 

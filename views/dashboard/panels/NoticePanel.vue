@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getNoticeList, adminApi } from '../../../apis';
 import { formatNoticeListForDashboard } from '../../../utils/noticeFormatter';
+import { exportToExcel } from '../../../utils/excelExport';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -121,6 +122,38 @@ function nextPage() {
     }
 }
 
+function exportNotices() {
+    if (formattedNotices.value.length === 0) {
+        ElMessage.warning(t('dashboard.common.exportNoData'));
+        return;
+    }
+
+    try {
+        exportToExcel({
+            fileName: `公告数据_page_${page.value}`,
+            sheetName: '公告数据',
+            rows: formattedNotices.value,
+            columns: [
+                { key: 'id', label: 'ID' },
+                { key: 'title', label: '标题' },
+                {
+                    key: 'summary',
+                    label: '内容摘要',
+                    formatter: (row) => row.summary || row.content || '—',
+                },
+                {
+                    key: 'createdAtText',
+                    label: '创建时间',
+                    formatter: (row) => row.createdAtText || '—',
+                },
+            ],
+        });
+        ElMessage.success(t('dashboard.common.exportSuccess'));
+    } catch (e) {
+        ElMessage.error(e?.message || t('dashboard.common.exportFailed'));
+    }
+}
+
 onMounted(fetchNotices);
 </script>
 
@@ -147,6 +180,9 @@ onMounted(fetchNotices);
                 "
             >
                 {{ t('dashboard.common.query') }}
+            </button>
+            <button class="btn btn-secondary" @click="exportNotices">
+                {{ t('dashboard.common.exportExcel') }}
             </button>
         </div>
 
