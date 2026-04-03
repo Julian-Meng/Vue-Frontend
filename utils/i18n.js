@@ -37,7 +37,7 @@ const messages = {
             createAccount: '创建新账号',
             loginMissingFields: '请输入用户名和密码',
             loginTokenMissing: '登录成功但未返回 token',
-            loginSuccess: '登录成功，正在进入测试页面',
+            loginSuccess: '登录成功',
             loginFailed: '登录失败，请检查账号和密码',
             registerTitle: '创建账号',
             registerSubtitle: '创建账号后即可进入系统',
