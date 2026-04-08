@@ -29,6 +29,27 @@ const registerForm = reactive({
     role: 'staff',
 });
 
+function resolveAuthErrorMessage(error, fallbackKey) {
+    if (!error) {
+        return t(fallbackKey);
+    }
+
+    const rawMessage = String(error?.message || '').trim();
+    const isNetworkError =
+        error?.errorType === 'network' ||
+        /failed to fetch|networkerror|network request failed/i.test(rawMessage);
+
+    if (isNetworkError) {
+        return t('auth.networkError');
+    }
+
+    if (/timeout|timed out/i.test(rawMessage)) {
+        return t('auth.requestTimeout');
+    }
+
+    return rawMessage || t(fallbackKey);
+}
+
 async function handleRegister() {
     const username = registerForm.username.trim();
     const password = registerForm.password;
@@ -56,7 +77,7 @@ async function handleRegister() {
         ElMessage.success(t('auth.registerSuccess'));
         await router.push('/login');
     } catch (error) {
-        ElMessage.error(error?.message || t('auth.registerFailed'));
+        ElMessage.error(resolveAuthErrorMessage(error, 'auth.registerFailed'));
     } finally {
         loading.value = false;
     }
@@ -191,7 +212,7 @@ onMounted(() => {
                     />
 
                     <button class="auth-primary-button" type="submit" :disabled="loading">
-                        <span v-if="loading">Loading...</span>
+                        <span v-if="loading">{{ t('auth.submitting') }}</span>
                         <span v-else>{{ t('auth.registerButton') }}</span>
                     </button>
 

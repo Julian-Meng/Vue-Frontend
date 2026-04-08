@@ -42,6 +42,27 @@ function extractToken(payload) {
     );
 }
 
+function resolveAuthErrorMessage(error, fallbackKey) {
+    if (!error) {
+        return t(fallbackKey);
+    }
+
+    const rawMessage = String(error?.message || '').trim();
+    const isNetworkError =
+        error?.errorType === 'network' ||
+        /failed to fetch|networkerror|network request failed/i.test(rawMessage);
+
+    if (isNetworkError) {
+        return t('auth.networkError');
+    }
+
+    if (/timeout|timed out/i.test(rawMessage)) {
+        return t('auth.requestTimeout');
+    }
+
+    return rawMessage || t(fallbackKey);
+}
+
 async function handleLogin() {
     if (!loginForm.username.trim() || !loginForm.password.trim()) {
         shakeSignal.value += 1;
@@ -77,7 +98,7 @@ async function handleLogin() {
         await router.push('/dashboard');
     } catch (error) {
         shakeSignal.value += 1;
-        ElMessage.error(error?.message || t('auth.loginFailed'));
+        ElMessage.error(resolveAuthErrorMessage(error, 'auth.loginFailed'));
     } finally {
         loading.value = false;
     }
@@ -176,7 +197,7 @@ onMounted(() => {
                     </div>
 
                     <button class="auth-primary-button" type="submit" :disabled="loading">
-                        <span v-if="loading">Loading...</span>
+                        <span v-if="loading">{{ t('auth.submitting') }}</span>
                         <span v-else>{{ t('auth.loginButton') }}</span>
                     </button>
 

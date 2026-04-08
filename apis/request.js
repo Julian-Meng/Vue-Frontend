@@ -280,7 +280,16 @@ export async function request({
         }
     }
 
-    const response = await fetch(buildRequestUrl(url, params), requestOptions);
+    let response;
+    try {
+        response = await fetch(buildRequestUrl(url, params), requestOptions);
+    } catch (error) {
+        throw createRequestError('Network request failed', {
+            errorType: 'network',
+            cause: error,
+        });
+    }
+
     return parseResponse(response, { unwrap });
 }
 

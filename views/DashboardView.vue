@@ -27,7 +27,7 @@ import PersonnelPanel from './dashboard/panels/PersonnelPanel.vue';
 import AccountPanel from './dashboard/panels/AccountPanel.vue';
 import ProfilePanel from './dashboard/panels/ProfilePanel.vue';
 import PermissionPanel from './dashboard/panels/PermissionPanel.vue';
-import AIChatPanel from './dashboard/panels/AIChatPanel.vue';
+import SupportChatPanel from './dashboard/panels/SupportChatPanel.vue';
 import './styles/dashboard-pages.css';
 
 const router = useRouter();
@@ -108,8 +108,8 @@ const navItems = computed(() => {
     }
 
     items.push({
-        key: 'ai',
-        label: t('dashboard.nav.ai'),
+        key: 'chat',
+        label: t('dashboard.nav.chat'),
         icon: ChatDotRound,
     });
 
@@ -126,7 +126,7 @@ const panelMap = {
     account: AccountPanel,
     profile: ProfilePanel,
     permission: PermissionPanel,
-    ai: AIChatPanel,
+    chat: SupportChatPanel,
 };
 
 const currentPanel = computed(() => panelMap[activeTab.value]);
@@ -146,8 +146,8 @@ function logout() {
     router.push('/');
 }
 
-function openAIPanel() {
-    activeTab.value = 'ai';
+function openSupportChatPanel() {
+    activeTab.value = 'chat';
 }
 
 onMounted(init);

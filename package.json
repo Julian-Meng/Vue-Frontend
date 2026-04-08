@@ -6,8 +6,8 @@
     "scripts": {
         "dev": "vite",
         "dev:devtools": "set VITE_ENABLE_VUE_DEVTOOLS=true&& vite",
-        "format": "prettier --write \"**/*.{js,vue,css,html,json,md}\"",
-        "format:check": "prettier --check \"**/*.{js,vue,css,html,json,md}\"",
+        "fmt": "prettier --write \"**/*.{js,vue,css,html,json,md}\"",
+        "fmtck": "prettier --check \"**/*.{js,vue,css,html,json,md}\"",
         "build": "vite build",
         "preview": "vite preview"
     },
