@@ -21,6 +21,7 @@ body,
     justify-content: center;
     padding: 24px;
     position: relative;
+    overflow-y: auto;
 }
 
 .auth-locale-button {
@@ -38,12 +39,15 @@ body,
 
 .auth-shell {
     /* width: min(960px, 100%); */
-    height: min(540px, calc(100dvh - 48px));
+    height: min(600px, calc(100dvh - 48px));
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    align-items: stretch;
     gap: 20vh;
     padding: 20px;
+    margin-top: 0;
 }
 
 /* @media (orientation: landscape) {
@@ -61,6 +65,7 @@ body,
 }
 
 .auth-visual-panel {
+    height: 100%;
     padding: 24px;
     border: 1px solid #ececec;
     border-radius: 10px;
@@ -83,11 +88,32 @@ body,
 
 .auth-form-panel {
     --auth-form-lift: clamp(10px, 2.2vh, 22px);
+    height: 100%;
     padding: calc(24px - (var(--auth-form-lift) / 2)) 24px calc(24px + var(--auth-form-lift));
     background: #fff;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    overflow-y: auto;
+}
+
+.auth-form-panel-register {
+    --auth-form-lift: 0px;
+    justify-content: flex-start;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.auth-form-panel-register .auth-head-sub {
+    margin-bottom: 14px;
+}
+
+.auth-form-panel-register .auth-form {
+    gap: 10px;
+}
+
+.auth-form-panel-register .auth-captcha-slot {
+    min-height: 80px;
 }
 
 .auth-welcome-title {
@@ -117,6 +143,7 @@ body,
 }
 
 .auth-form > .auth-password-wrap,
+.auth-form > .auth-captcha-slot,
 .auth-form > .auth-role-row,
 .auth-form > .auth-extra-row,
 .auth-form > .auth-footer-row,
@@ -265,11 +292,75 @@ body,
     font-weight: 600;
 }
 
+.auth-captcha-slot {
+    display: grid;
+    gap: 8px;
+    min-height: 88px;
+}
+
+.auth-captcha-slot.is-hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.auth-captcha-row {
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    gap: 8px;
+}
+
+.auth-captcha-image-button {
+    height: 44px;
+    border: 1px solid #d8d8d8;
+    border-radius: 10px;
+    padding: 0;
+    background: #ffffff;
+    cursor: pointer;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-captcha-image-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.auth-captcha-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    padding: 2px 4px;
+    box-sizing: border-box;
+}
+
+.auth-captcha-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 12px;
+    color: #666;
+}
+
+.auth-captcha-tip {
+    margin: 0;
+    color: #777;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
 @media (max-width: 900px) {
     .auth-shell {
         grid-template-columns: 1fr;
         min-height: 0;
         height: auto;
+        margin-top: 0;
     }
 
     .auth-visual-panel {

@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Hide, View } from '@element-plus/icons-vue';
 
-import { register } from '../apis/public';
+import { getCaptcha, register } from '../apis/public';
 import { toggleLocale } from '../utils/i18n';
 import AuthAnimatedCharacters from './components/AuthAnimatedCharacters.vue';
 import AuthQuoteCard from './components/AuthQuoteCard.vue';
@@ -19,6 +19,10 @@ const activeField = ref('');
 const showPassword = ref(false);
 const hitokoto = ref(t('auth.loadingQuote'));
 const hitokotoFrom = ref('');
+const registerCaptchaId = ref('');
+const registerCaptchaCode = ref('');
+const registerCaptchaImage = ref('');
+const registerCaptchaLoading = ref(false);
 
 const passwordLength = computed(() => registerForm.password.length);
 
@@ -50,6 +54,36 @@ function resolveAuthErrorMessage(error, fallbackKey) {
     return rawMessage || t(fallbackKey);
 }
 
+function isCaptchaErrorMessage(message) {
+    return /验证码错误或已过期|captcha/i.test(String(message || '').trim());
+}
+
+async function refreshRegisterCaptcha({ silent = false } = {}) {
+    registerCaptchaLoading.value = true;
+
+    try {
+        const payload = await getCaptcha({ scene: 'register' });
+
+        registerCaptchaId.value = payload?.captcha_id || '';
+        registerCaptchaImage.value = payload?.image_base64 || '';
+
+        if (!registerCaptchaId.value || !registerCaptchaImage.value) {
+            throw new Error(t('auth.captchaLoadFailed'));
+        }
+    } catch (error) {
+        registerCaptchaId.value = '';
+        registerCaptchaImage.value = '';
+
+        if (!silent) {
+            ElMessage.error(resolveAuthErrorMessage(error, 'auth.captchaLoadFailed'));
+        }
+
+        throw error;
+    } finally {
+        registerCaptchaLoading.value = false;
+    }
+}
+
 async function handleRegister() {
     const username = registerForm.username.trim();
     const password = registerForm.password;
@@ -65,21 +99,54 @@ async function handleRegister() {
         return;
     }
 
+    if (!registerCaptchaCode.value.trim()) {
+        ElMessage.warning(t('auth.captchaMissing'));
+        return;
+    }
+
+    if (!registerCaptchaId.value) {
+        try {
+            await refreshRegisterCaptcha();
+        } catch {
+            return;
+        }
+    }
+
     loading.value = true;
+    let shouldRedirect = false;
 
     try {
         await register({
             username,
             password,
             role: registerForm.role,
+            captcha_id: registerCaptchaId.value,
+            captcha_code: registerCaptchaCode.value.trim(),
         });
 
+        shouldRedirect = true;
+        registerForm.password = '';
+        registerForm.confirmPassword = '';
+        registerCaptchaCode.value = '';
         ElMessage.success(t('auth.registerSuccess'));
-        await router.push('/login');
     } catch (error) {
+        if (isCaptchaErrorMessage(error?.payload?.msg || error?.message)) {
+            registerCaptchaCode.value = '';
+        }
+
         ElMessage.error(resolveAuthErrorMessage(error, 'auth.registerFailed'));
     } finally {
+        try {
+            await refreshRegisterCaptcha({ silent: true });
+        } catch {
+            // 刷新失败时保留当前页面状态，用户可手动点击图片重试。
+        }
+
         loading.value = false;
+
+        if (shouldRedirect) {
+            await router.push('/login');
+        }
     }
 }
 
@@ -110,6 +177,7 @@ async function fetchHitokoto() {
 
 onMounted(() => {
     fetchHitokoto();
+    refreshRegisterCaptcha({ silent: true });
 });
 </script>
 
@@ -130,7 +198,7 @@ onMounted(() => {
                 />
             </section>
 
-            <section class="auth-form-panel">
+            <section class="auth-form-panel auth-form-panel-register">
                 <div class="auth-brand">
                     <h2 class="auth-welcome-title">{{ t('auth.registerTitle') }}</h2>
                     <p class="auth-head-sub">{{ t('auth.registerSubtitle') }}</p>
@@ -210,6 +278,43 @@ onMounted(() => {
                         @blur="handleFieldBlur"
                         @keyup.enter="handleRegister"
                     />
+
+                    <div class="auth-captcha-slot">
+                        <label class="auth-label" for="register-captcha">{{
+                            t('auth.captchaLabel')
+                        }}</label>
+                        <div class="auth-captcha-row">
+                            <input
+                                id="register-captcha"
+                                v-model="registerCaptchaCode"
+                                :placeholder="t('auth.captchaPlaceholder')"
+                                autocomplete="off"
+                                class="auth-native-input"
+                                maxlength="8"
+                                type="text"
+                                @focus="handleFieldFocus('captcha')"
+                                @blur="handleFieldBlur"
+                                @keyup.enter="handleRegister"
+                            />
+                            <button
+                                class="auth-captcha-image-button"
+                                type="button"
+                                :disabled="registerCaptchaLoading"
+                                @click="refreshRegisterCaptcha"
+                            >
+                                <img
+                                    v-if="registerCaptchaImage"
+                                    :src="registerCaptchaImage"
+                                    :alt="t('auth.captchaImageAlt')"
+                                    class="auth-captcha-image"
+                                />
+                                <span v-else class="auth-captcha-fallback">{{
+                                    t('auth.captchaLoading')
+                                }}</span>
+                            </button>
+                        </div>
+                        <p class="auth-captcha-tip">{{ t('auth.captchaHintClick') }}</p>
+                    </div>
 
                     <button class="auth-primary-button" type="submit" :disabled="loading">
                         <span v-if="loading">{{ t('auth.submitting') }}</span>

@@ -22,6 +22,16 @@ export function register(data) {
     });
 }
 
+// 获取图形验证码。
+export function getCaptcha(params) {
+    return request({
+        url: '/api/captcha',
+        method: 'GET',
+        withAuth: false,
+        params,
+    });
+}
+
 // 获取公告列表。
 export function getNoticeList(params) {
     return request({
