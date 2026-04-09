@@ -19,11 +19,6 @@ const router = createRouter({
             component: () => import('../../views/RegisterView.vue'),
         },
         {
-            path: '/api-test',
-            name: 'api-test',
-            component: () => import('../../views/ApiTestView.vue'),
-        },
-        {
             path: '/dashboard',
             name: 'dashboard',
             meta: { requiresAuth: true },

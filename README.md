@@ -1,8 +1,8 @@
 # Vue3 Frontend / 人事管理前端
 
-A Vue 3 HR management frontend with authentication, role-based dashboard modules, bilingual UI, and API debugging tools.
+A Vue 3 HR management frontend with authentication, role-based dashboard modules, and bilingual UI.
 
-这是一个基于 Vue 3 的人事管理前端项目，已实现认证、按角色展示的仪表盘模块、中英文界面与接口调试工具。
+这是一个基于 Vue 3 的人事管理前端项目，已实现认证、按角色展示的仪表盘模块与中英文界面。
 
 ## Tech Stack / 技术栈
 
@@ -69,14 +69,12 @@ npm run preview
 - Dashboard is online with overview, attendance, notices, profile, permission matrix, and AI chat panels.
 - Admin role has additional management panels (employees, departments, accounts) and can review personnel changes; regular users can submit personnel change requests.
 - UI supports `zh-CN` / `en-US` switching and remembers locale in localStorage.
-- API test page is available at `/api-test`, with grouped operations for session/public/admin/user APIs and manual token tools.
 
 - 已实现登录/注册流程，Token 状态由 Pinia 管理并回退 localStorage 持久化。
 - 已启用路由守卫：未登录访问受保护页面会回到 `/`，已登录访问 `/` 会自动跳转到 `/dashboard`。
 - 已上线仪表盘模块：概览、考勤、公告、个人档案、权限矩阵、AI 对话。
 - 管理员具备额外管理面板（员工、部门、账号）并可审批人事变更；普通用户可提交人事变更申请。
 - 界面支持 `zh-CN` / `en-US` 双语切换，并在 localStorage 记忆语言设置。
-- 提供 `/api-test` 接口测试页，按会话/公共/管理员/用户分组，并支持手动 Token 工具。
 
 ## License / 许可证
 
