@@ -35,6 +35,10 @@ const showDetail = ref(false);
 const detailLoading = ref(false);
 const detailError = ref('');
 const detailTarget = ref(null);
+const hasMore = ref(false);
+const userFallbackTip = ref('');
+
+const USER_PERSONNEL_HISTORY_KEY = 'user_personnel_history_v1';
 
 const isCreateLeaveType = computed(() => Number(createForm.value.change_type) === 4);
 
@@ -112,6 +116,93 @@ function normalizeListPayload(payload) {
     return [];
 }
 
+function canUseLocalStorage() {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function sortByCreateDesc(rows) {
+    return [...rows].sort((a, b) => {
+        const aTime = new Date(resolveCreatedAt(a)).getTime() || 0;
+        const bTime = new Date(resolveCreatedAt(b)).getTime() || 0;
+        return bTime - aTime;
+    });
+}
+
+function readUserHistory() {
+    if (!canUseLocalStorage()) {
+        return [];
+    }
+
+    try {
+        const text = window.localStorage.getItem(USER_PERSONNEL_HISTORY_KEY);
+        const parsed = text ? JSON.parse(text) : [];
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        return sortByCreateDesc(parsed);
+    } catch {
+        return [];
+    }
+}
+
+function writeUserHistory(rows) {
+    if (!canUseLocalStorage()) {
+        return;
+    }
+
+    try {
+        const normalizedRows = Array.isArray(rows) ? sortByCreateDesc(rows).slice(0, 300) : [];
+        window.localStorage.setItem(USER_PERSONNEL_HISTORY_KEY, JSON.stringify(normalizedRows));
+    } catch {
+        // Ignore local persistence errors.
+    }
+}
+
+function paginateRows(rows) {
+    const currentPage = Number(page.value) || 1;
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return rows.slice(start, end);
+}
+
+function resolveHasMore(payload, rows) {
+    if (payload && typeof payload === 'object') {
+        const total = Number(payload.total ?? payload.count ?? payload.total_count ?? 0);
+        if (Number.isFinite(total) && total > 0) {
+            return page.value * pageSize < total;
+        }
+    }
+
+    return rows.length >= pageSize;
+}
+
+function buildLocalHistoryRecord(payload, createdData) {
+    const remoteRecord = createdData && typeof createdData === 'object' ? createdData : {};
+
+    return {
+        ...remoteRecord,
+        id: remoteRecord.id ?? `local-${Date.now()}`,
+        change_type: Number(payload?.change_type ?? remoteRecord.change_type ?? 0),
+        target_dpt: payload?.target_dpt ?? remoteRecord.target_dpt,
+        description: payload?.description ?? remoteRecord.description,
+        leave_start_at: payload?.leave_start_at ?? remoteRecord.leave_start_at,
+        leave_end_at: payload?.leave_end_at ?? remoteRecord.leave_end_at,
+        leave_reason: payload?.leave_reason ?? remoteRecord.leave_reason,
+        leave_type: payload?.leave_type ?? remoteRecord.leave_type,
+        handover_note: payload?.handover_note ?? remoteRecord.handover_note,
+        status: remoteRecord.status ?? remoteRecord.state ?? 'pending',
+        state: remoteRecord.state ?? 0,
+        reject_reason: remoteRecord.reject_reason ?? '',
+        create_at: remoteRecord.create_at ?? new Date().toISOString(),
+    };
+}
+
+function upsertUserHistory(record) {
+    const currentRows = readUserHistory();
+    const filtered = currentRows.filter((item) => String(item.id) !== String(record.id));
+    writeUserHistory([record, ...filtered]);
+}
+
 function normalizeStatus(item) {
     const rawStatus = item?.status ?? item?.state;
 
@@ -119,7 +210,9 @@ function normalizeStatus(item) {
     if (rawStatus === 1 || rawStatus === '1') return 'approved';
     if (rawStatus === 2 || rawStatus === '2') return 'rejected';
 
-    const lowered = String(rawStatus ?? '').trim().toLowerCase();
+    const lowered = String(rawStatus ?? '')
+        .trim()
+        .toLowerCase();
 
     if (['pending', 'wait', 'waiting', '待审批', '待审核'].includes(lowered)) {
         return 'pending';
@@ -174,7 +267,9 @@ function normalizeChangeType(item) {
     if (rawType === 3 || rawType === '3') return 3;
     if (rawType === 4 || rawType === '4') return 4;
 
-    const lowered = String(rawType ?? '').trim().toLowerCase();
+    const lowered = String(rawType ?? '')
+        .trim()
+        .toLowerCase();
 
     if (['调部门', 'department'].includes(lowered)) return 1;
     if (['调岗', 'post', 'position'].includes(lowered)) return 2;
@@ -273,22 +368,57 @@ function handleRequestError(err, fallbackKey, { silent = false } = {}) {
     return message;
 }
 
-async function fetchList() {
-    loading.value = true;
-    error.value = '';
+async function fetchUserList(params) {
+    userFallbackTip.value = '';
 
     try {
-        if (!isAdmin()) {
-            list.value = [];
+        const response = await userApi.getMyChangeList(undefined, params);
+        const rows = normalizeListPayload(response);
+        list.value = rows;
+        hasMore.value = resolveHasMore(response, rows);
+
+        if (page.value === 1 && rows.length > 0) {
+            writeUserHistory(rows);
+        }
+        return;
+    } catch (err) {
+        const status = Number(err?.status ?? 0);
+
+        if ([404, 405].includes(status) || err?.errorType === 'network' || status === 0) {
+            const historyRows = readUserHistory();
+            list.value = paginateRows(historyRows);
+            hasMore.value = page.value * pageSize < historyRows.length;
+            userFallbackTip.value = t('dashboard.personnel.messages.fallbackLocal');
             return;
         }
 
+        error.value = handleRequestError(err, 'dashboard.personnel.loadFailed', { silent: true });
+        list.value = [];
+        hasMore.value = false;
+    }
+}
+
+async function fetchList() {
+    loading.value = true;
+    error.value = '';
+    userFallbackTip.value = '';
+
+    try {
         const params = { page: page.value, page_size: pageSize };
+
+        if (!isAdmin()) {
+            await fetchUserList(params);
+            return;
+        }
+
         const response = await adminApi.getPersonnelList(undefined, params);
-        list.value = normalizeListPayload(response);
+        const rows = normalizeListPayload(response);
+        list.value = rows;
+        hasMore.value = resolveHasMore(response, rows);
     } catch (err) {
         error.value = handleRequestError(err, 'dashboard.personnel.loadFailed', { silent: true });
         list.value = [];
+        hasMore.value = false;
     } finally {
         loading.value = false;
     }
@@ -312,7 +442,27 @@ async function openDetail(item) {
     detailTarget.value = item;
 
     try {
-        const detail = await adminApi.getPersonnelById(undefined, item.id);
+        let detail = null;
+
+        if (isAdmin()) {
+            detail = await adminApi.getPersonnelById(undefined, item.id);
+        } else if (item?.id && !String(item.id).startsWith('local-')) {
+            try {
+                detail = await userApi.getMyChangeById(undefined, item.id);
+            } catch (err) {
+                const status = Number(err?.status ?? 0);
+                if (![404, 405].includes(status)) {
+                    detailError.value = handleRequestError(
+                        err,
+                        'dashboard.personnel.messages.detailFailed',
+                        {
+                            silent: true,
+                        }
+                    );
+                }
+            }
+        }
+
         if (detail && typeof detail === 'object') {
             detailTarget.value = detail;
         }
@@ -415,20 +565,26 @@ async function submitCreate() {
 
     try {
         const payload = buildCreatePayload();
+        let createdResponse = null;
 
         if (isAdmin()) {
-            await adminApi.createPersonnel(undefined, payload);
+            createdResponse = await adminApi.createPersonnel(undefined, payload);
         } else {
-            await userApi.createChangeRequest(undefined, payload);
+            createdResponse = await userApi.createChangeRequest(undefined, payload);
         }
 
         showCreate.value = false;
         resetCreateForm();
         ElMessage.success(t('dashboard.personnel.messages.createSuccess'));
 
-        if (isAdmin()) {
-            await fetchList();
+        page.value = 1;
+
+        if (!isAdmin()) {
+            const localRecord = buildLocalHistoryRecord(payload, createdResponse);
+            upsertUserHistory(localRecord);
         }
+
+        await fetchList();
     } catch (err) {
         handleRequestError(err, 'dashboard.personnel.messages.createFailed');
     } finally {
@@ -483,7 +639,7 @@ function prevPage() {
 }
 
 function nextPage() {
-    if (list.value.length >= pageSize) {
+    if (hasMore.value) {
         page.value += 1;
         fetchList();
     }
@@ -656,7 +812,7 @@ onMounted(fetchList);
                     {{ t('dashboard.common.prevPage') }}
                 </button>
                 <span class="page-info">{{ t('dashboard.common.pageN', { page }) }}</span>
-                <button :disabled="list.length < pageSize" class="btn btn-ghost" @click="nextPage">
+                <button :disabled="!hasMore" class="btn btn-ghost" @click="nextPage">
                     {{ t('dashboard.common.nextPage') }}
                 </button>
             </div>
@@ -664,6 +820,59 @@ onMounted(fetchList);
 
         <template v-else>
             <p class="text-muted user-tip">{{ t('dashboard.personnel.userHint') }}</p>
+            <p v-if="userFallbackTip" class="text-info user-note">{{ userFallbackTip }}</p>
+
+            <div v-if="loading" class="tip">{{ t('dashboard.loading') }}</div>
+            <div v-else-if="error" class="tip error">{{ error }}</div>
+            <div v-else-if="list.length === 0" class="tip">{{ t('dashboard.common.noData') }}</div>
+            <div v-else class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>{{ t('dashboard.personnel.table.id') }}</th>
+                            <th>{{ t('dashboard.personnel.table.changeType') }}</th>
+                            <th>{{ t('dashboard.personnel.table.targetDept') }}</th>
+                            <th>{{ t('dashboard.personnel.table.leaveRange') }}</th>
+                            <th>{{ t('dashboard.personnel.table.leaveReason') }}</th>
+                            <th>{{ t('dashboard.personnel.table.status') }}</th>
+                            <th>{{ t('dashboard.personnel.table.rejectReason') }}</th>
+                            <th>{{ t('dashboard.personnel.table.createdAt') }}</th>
+                            <th>{{ t('dashboard.personnel.table.actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in list" :key="item.id">
+                            <td>{{ item.id }}</td>
+                            <td>{{ changeTypeText(item) }}</td>
+                            <td>{{ displayValue(item.target_dpt ?? item.new_dept) }}</td>
+                            <td>{{ leaveRangeText(item) }}</td>
+                            <td>{{ displayValue(item.leave_reason) }}</td>
+                            <td>
+                                <span class="status-badge" :class="statusMeta(item).className">
+                                    {{ statusMeta(item).text }}
+                                </span>
+                            </td>
+                            <td class="cell-truncate">{{ displayValue(item.reject_reason) }}</td>
+                            <td>{{ resolveCreatedAt(item) }}</td>
+                            <td>
+                                <button class="btn-link" @click="openDetail(item)">
+                                    {{ t('dashboard.personnel.actions.viewDetail') }}
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div v-if="!loading && !error" class="pagination">
+                <button :disabled="page <= 1" class="btn btn-ghost" @click="prevPage">
+                    {{ t('dashboard.common.prevPage') }}
+                </button>
+                <span class="page-info">{{ t('dashboard.common.pageN', { page }) }}</span>
+                <button :disabled="!hasMore" class="btn btn-ghost" @click="nextPage">
+                    {{ t('dashboard.common.nextPage') }}
+                </button>
+            </div>
         </template>
 
         <div v-if="showApprove" class="modal-overlay" @click.self="showApprove = false">
@@ -674,8 +883,12 @@ onMounted(fetchList);
                 <div class="form-row">
                     <label>{{ t('dashboard.personnel.form.action') }}</label>
                     <select v-model="approveForm.action" class="input">
-                        <option value="approve">{{ t('dashboard.personnel.actions.approve') }}</option>
-                        <option value="reject">{{ t('dashboard.personnel.actions.reject') }}</option>
+                        <option value="approve">
+                            {{ t('dashboard.personnel.actions.approve') }}
+                        </option>
+                        <option value="reject">
+                            {{ t('dashboard.personnel.actions.reject') }}
+                        </option>
                     </select>
                 </div>
                 <div class="form-row">
@@ -821,48 +1034,92 @@ onMounted(fetchList);
                     <p v-if="detailError" class="tip error detail-error">{{ detailError }}</p>
                     <div class="detail-grid">
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.table.employee') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.employee_name ?? detailTarget?.emp_id) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.table.employee')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.employee_name ?? detailTarget?.emp_id)
+                            }}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.table.changeType') }}</span>
-                            <span class="detail-value">{{ changeTypeText(detailTarget || {}) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.table.changeType')
+                            }}</span>
+                            <span class="detail-value">{{
+                                changeTypeText(detailTarget || {})
+                            }}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.table.targetDept') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.target_dpt ?? detailTarget?.new_dept) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.table.targetDept')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.target_dpt ?? detailTarget?.new_dept)
+                            }}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.table.status') }}</span>
-                            <span class="detail-value">{{ statusMeta(detailTarget || {}).text }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.table.status')
+                            }}</span>
+                            <span class="detail-value">{{
+                                statusMeta(detailTarget || {}).text
+                            }}</span>
                         </div>
                         <div class="detail-item detail-item-wide">
-                            <span class="detail-label">{{ t('dashboard.personnel.table.description') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.description) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.table.description')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.description)
+                            }}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.form.leaveStart') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.leave_start_at) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.form.leaveStart')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.leave_start_at)
+                            }}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.form.leaveEnd') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.leave_end_at) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.form.leaveEnd')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.leave_end_at)
+                            }}</span>
                         </div>
                         <div class="detail-item detail-item-wide">
-                            <span class="detail-label">{{ t('dashboard.personnel.form.leaveReason') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.leave_reason) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.form.leaveReason')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.leave_reason)
+                            }}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">{{ t('dashboard.personnel.form.leaveType') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.leave_type) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.form.leaveType')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.leave_type)
+                            }}</span>
                         </div>
                         <div class="detail-item detail-item-wide">
-                            <span class="detail-label">{{ t('dashboard.personnel.form.handoverNote') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.handover_note) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.form.handoverNote')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.handover_note)
+                            }}</span>
                         </div>
                         <div class="detail-item detail-item-wide">
-                            <span class="detail-label">{{ t('dashboard.personnel.table.rejectReason') }}</span>
-                            <span class="detail-value">{{ displayValue(detailTarget?.reject_reason) }}</span>
+                            <span class="detail-label">{{
+                                t('dashboard.personnel.table.rejectReason')
+                            }}</span>
+                            <span class="detail-value">{{
+                                displayValue(detailTarget?.reject_reason)
+                            }}</span>
                         </div>
                     </div>
                 </div>
@@ -889,6 +1146,10 @@ onMounted(fetchList);
 
 .user-tip {
     margin-top: 8px;
+}
+
+.user-note {
+    margin: 6px 0 12px;
 }
 
 .cell-truncate {

@@ -21,6 +21,16 @@ export function updateUserProfileById(token, id, data) {
     });
 }
 
+// 更新当前登录用户自己的档案。
+export function updateMyProfile(token, data) {
+    return request({
+        url: `${USER_PREFIX}/profile`,
+        method: 'PUT',
+        token,
+        data,
+    });
+}
+
 // 获取当前登录用户自己的档案。
 export function getMyProfile(token) {
     return request({

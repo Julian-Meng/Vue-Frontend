@@ -65,7 +65,13 @@ function normalizeListPayload(payload) {
     if (Array.isArray(payload)) return payload;
 
     if (payload && typeof payload === 'object') {
-        const candidates = [payload.list, payload.rows, payload.items, payload.records, payload.data];
+        const candidates = [
+            payload.list,
+            payload.rows,
+            payload.items,
+            payload.records,
+            payload.data,
+        ];
 
         for (const candidate of candidates) {
             if (Array.isArray(candidate)) {
@@ -87,7 +93,9 @@ function normalizeStateValue(item) {
     if (raw === 1 || raw === '1') return 1;
     if (raw === 0 || raw === '0') return 0;
 
-    const normalized = String(raw ?? '').trim().toLowerCase();
+    const normalized = String(raw ?? '')
+        .trim()
+        .toLowerCase();
     if (['在职', 'active', 'enabled'].includes(normalized)) return 1;
     if (['离职', 'inactive', 'disabled'].includes(normalized)) return 0;
 
@@ -126,7 +134,9 @@ function getDetailEmpId() {
 }
 
 function syncDetailFormValues() {
-    detailDept.value = textOrEmpty(detail.value?.dept ?? detail.value?.department ?? detail.value?.dpt_name);
+    detailDept.value = textOrEmpty(
+        detail.value?.dept ?? detail.value?.department ?? detail.value?.dpt_name
+    );
     detailJob.value = textOrEmpty(detail.value?.job);
 
     const normalizedState = normalizeStateValue(detail.value);
@@ -592,43 +602,56 @@ onMounted(() => {
                         >
                             {{ t('dashboard.person.actions.refreshDetail') }}
                         </button>
-                        <button class="btn btn-ghost btn-close" @click="showDetail = false">x</button>
+                        <button class="btn btn-ghost btn-close" @click="showDetail = false">
+                            x
+                        </button>
                     </div>
                 </div>
 
                 <div class="drawer-content">
                     <div v-if="detailLoading" class="tip">{{ t('dashboard.loading') }}</div>
                     <div v-else>
-                        <div v-if="detailError" class="tip error detail-error">{{ detailError }}</div>
+                        <div v-if="detailError" class="tip error detail-error">
+                            {{ detailError }}
+                        </div>
 
                         <div v-if="detail" class="detail-grid">
                             <div class="detail-item">
-                                <span class="detail-label">{{ t('dashboard.person.table.id') }}</span>
+                                <span class="detail-label">{{
+                                    t('dashboard.person.table.id')
+                                }}</span>
                                 <span class="detail-value">{{ displayValue(detail.id) }}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">{{ t('dashboard.person.table.empId') }}</span>
+                                <span class="detail-label">{{
+                                    t('dashboard.person.table.empId')
+                                }}</span>
                                 <span class="detail-value">{{ displayValue(detail.emp_id) }}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">{{ t('dashboard.person.table.name') }}</span>
+                                <span class="detail-label">{{
+                                    t('dashboard.person.table.name')
+                                }}</span>
                                 <span class="detail-value">{{ displayValue(detail.name) }}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">{{ t('dashboard.person.table.department') }}</span>
+                                <span class="detail-label">{{
+                                    t('dashboard.person.table.department')
+                                }}</span>
                                 <span class="detail-value">{{ resolveDept(detail) }}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">{{ t('dashboard.person.table.job') }}</span>
+                                <span class="detail-label">{{
+                                    t('dashboard.person.table.job')
+                                }}</span>
                                 <span class="detail-value">{{ displayValue(detail.job) }}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">{{ t('dashboard.person.table.state') }}</span>
+                                <span class="detail-label">{{
+                                    t('dashboard.person.table.state')
+                                }}</span>
                                 <span class="detail-value">
-                                    <span
-                                        class="status-badge"
-                                        :class="stateMeta(detail).className"
-                                    >
+                                    <span class="status-badge" :class="stateMeta(detail).className">
                                         {{ stateMeta(detail).text }}
                                     </span>
                                 </span>
@@ -636,7 +659,9 @@ onMounted(() => {
                         </div>
 
                         <section class="action-section">
-                            <h4 class="section-title">{{ t('dashboard.person.sections.updateDepartment') }}</h4>
+                            <h4 class="section-title">
+                                {{ t('dashboard.person.sections.updateDepartment') }}
+                            </h4>
                             <div class="form-inline">
                                 <input
                                     v-model="detailDept"
@@ -658,7 +683,9 @@ onMounted(() => {
                         </section>
 
                         <section class="action-section">
-                            <h4 class="section-title">{{ t('dashboard.person.sections.updateJob') }}</h4>
+                            <h4 class="section-title">
+                                {{ t('dashboard.person.sections.updateJob') }}
+                            </h4>
                             <div class="form-inline">
                                 <input
                                     v-model="detailJob"
@@ -680,11 +707,17 @@ onMounted(() => {
                         </section>
 
                         <section class="action-section">
-                            <h4 class="section-title">{{ t('dashboard.person.sections.updateState') }}</h4>
+                            <h4 class="section-title">
+                                {{ t('dashboard.person.sections.updateState') }}
+                            </h4>
                             <div class="form-inline">
                                 <select v-model.number="detailState" class="input">
-                                    <option :value="1">{{ t('dashboard.person.state.employed') }} (1)</option>
-                                    <option :value="0">{{ t('dashboard.person.state.resigned') }} (0)</option>
+                                    <option :value="1">
+                                        {{ t('dashboard.person.state.employed') }} (1)
+                                    </option>
+                                    <option :value="0">
+                                        {{ t('dashboard.person.state.resigned') }} (0)
+                                    </option>
                                 </select>
                                 <button
                                     :disabled="updatingState"
@@ -701,7 +734,9 @@ onMounted(() => {
                         </section>
 
                         <section class="action-section danger-section">
-                            <h4 class="section-title">{{ t('dashboard.person.sections.danger') }}</h4>
+                            <h4 class="section-title">
+                                {{ t('dashboard.person.sections.danger') }}
+                            </h4>
                             <p class="text-muted danger-desc">
                                 {{ t('dashboard.person.dangerHint') }}
                             </p>

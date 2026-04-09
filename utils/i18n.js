@@ -318,6 +318,7 @@ const messages = {
                     approveSuccess: '操作成功',
                     approveFailed: '操作失败',
                     detailFailed: '详情加载失败',
+                    fallbackLocal: '当前展示本地历史记录，可能不含跨设备或更早数据。',
                 },
                 validation: {
                     changeTypeInvalid: '请选择有效的变更类型',
@@ -348,6 +349,56 @@ const messages = {
                 loadFailed: '加载失败',
                 searching: '查询中...',
                 searchHint: '输入工号后点击查询',
+                subOwn: '默认展示当前登录账号的档案信息',
+                subOther: '当前正在查看其他员工档案',
+                searchPlaceholder: '输入员工工号查询档案',
+                returnMine: '返回我的档案',
+                edit: '编辑资料',
+                empty: '暂无档案数据',
+                viewingSelf: '当前查看：我的档案',
+                viewingOther: '当前查看：{name}',
+                sections: {
+                    basic: '基础信息',
+                    organization: '组织信息',
+                    contact: '联系信息',
+                },
+                fields: {
+                    name: '姓名',
+                    gender: '性别',
+                    status: '状态',
+                    hireDate: '入职日期',
+                    empId: '员工工号',
+                    department: '部门',
+                    position: '职位',
+                    phone: '手机号',
+                    email: '邮箱',
+                    address: '住址',
+                },
+                state: {
+                    employed: '在职',
+                    resigned: '离职',
+                    unknown: '未知',
+                },
+                export: {
+                    sheet: '档案详情',
+                    section: '分区',
+                    field: '字段',
+                    value: '值',
+                },
+                messages: {
+                    saveSuccess: '保存成功',
+                    saveFailed: '保存失败',
+                    searchFailed: '查询失败，请检查工号后重试',
+                },
+                validation: {
+                    empIdRequired: '请输入员工工号',
+                    profileMissing: '当前没有可保存的档案数据',
+                },
+                errors: {
+                    unauthorized: '登录已过期，请重新登录',
+                    forbidden: '权限不足，无法执行该操作',
+                    parseFailed: '请求解析失败，请检查日期或资料格式后重试',
+                },
                 saving: '保存中...',
             },
             permission: {
@@ -649,11 +700,13 @@ const messages = {
                 adminSub: 'Review personnel change requests',
                 userSub: 'Submit personnel change requests',
                 submit: 'Submit Request',
-                userHint: 'Click "Submit Request" to apply for transfer, role change, resignation, or leave.',
+                userHint:
+                    'Click "Submit Request" to apply for transfer, role change, resignation, or leave.',
                 createTitle: 'Submit Personnel Change Request',
                 approveTitle: 'Review Request #{id}',
                 detailTitle: 'Request Details #{id}',
-                leaveTip: 'For leave requests, fill dates and reason. Leave type and handover note are optional.',
+                leaveTip:
+                    'For leave requests, fill dates and reason. Leave type and handover note are optional.',
                 table: {
                     id: 'ID',
                     employee: 'Employee',
@@ -716,6 +769,8 @@ const messages = {
                     approveSuccess: 'Operation successful',
                     approveFailed: 'Operation failed',
                     detailFailed: 'Failed to load details',
+                    fallbackLocal:
+                        'Showing local history only. Cross-device or older records may be missing.',
                 },
                 validation: {
                     changeTypeInvalid: 'Please choose a valid change type',
@@ -730,7 +785,8 @@ const messages = {
                 errors: {
                     unauthorized: 'Session expired, please log in again',
                     forbidden: 'Permission denied for this action',
-                    noEmpBinding: 'Current account is not bound to an employee ID, please contact admin',
+                    noEmpBinding:
+                        'Current account is not bound to an employee ID, please contact admin',
                     leaveDateFormat: 'Invalid leave date format, expected YYYY-MM-DD',
                     leaveEndEarlier: 'Leave end date cannot be earlier than start date',
                 },
@@ -746,6 +802,57 @@ const messages = {
                 loadFailed: 'Load failed',
                 searching: 'Searching...',
                 searchHint: 'Enter employee ID and search',
+                subOwn: 'Your own profile is shown by default',
+                subOther: 'Viewing another employee profile',
+                searchPlaceholder: 'Enter employee ID to search profile',
+                returnMine: 'Back to My Profile',
+                edit: 'Edit Profile',
+                empty: 'No profile data',
+                viewingSelf: 'Viewing: My Profile',
+                viewingOther: 'Viewing: {name}',
+                sections: {
+                    basic: 'Basic Info',
+                    organization: 'Organization',
+                    contact: 'Contact',
+                },
+                fields: {
+                    name: 'Name',
+                    gender: 'Gender',
+                    status: 'Status',
+                    hireDate: 'Hire Date',
+                    empId: 'Employee ID',
+                    department: 'Department',
+                    position: 'Position',
+                    phone: 'Phone',
+                    email: 'Email',
+                    address: 'Address',
+                },
+                state: {
+                    employed: 'Employed',
+                    resigned: 'Resigned',
+                    unknown: 'Unknown',
+                },
+                export: {
+                    sheet: 'Profile Details',
+                    section: 'Section',
+                    field: 'Field',
+                    value: 'Value',
+                },
+                messages: {
+                    saveSuccess: 'Saved successfully',
+                    saveFailed: 'Save failed',
+                    searchFailed: 'Search failed, please check employee ID and retry',
+                },
+                validation: {
+                    empIdRequired: 'Please enter employee ID',
+                    profileMissing: 'No profile data available to save',
+                },
+                errors: {
+                    unauthorized: 'Session expired, please log in again',
+                    forbidden: 'Permission denied for this action',
+                    parseFailed:
+                        'Request parse failed. Please verify date or profile format and retry',
+                },
                 saving: 'Saving...',
             },
             permission: {
