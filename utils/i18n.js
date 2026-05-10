@@ -24,6 +24,7 @@ const messages = {
             switchTo: 'EN',
         },
         auth: {
+            appTitle: '人事管理系统',
             logoSub: 'Natural Experience',
             loadingQuote: '正在加载一言...',
             fallbackQuote: '风起于青萍之末，浪成于微澜之间。',
@@ -68,7 +69,7 @@ const messages = {
             visualFrom: '404 导航员',
         },
         dashboard: {
-            appTitle: 'Vue CMS',
+            appTitle: '人事管理系统',
             loading: '加载中...',
             toggleSidebar: '切换侧栏',
             expandSidebar: '展开侧栏',
@@ -480,6 +481,7 @@ const messages = {
             switchTo: '中文',
         },
         auth: {
+            appTitle: 'HR Management System',
             logoSub: 'Natural Experience',
             loadingQuote: 'Loading quote...',
             fallbackQuote: 'Great winds rise from tiny ripples.',
@@ -524,7 +526,7 @@ const messages = {
             visualFrom: '404 Navigator',
         },
         dashboard: {
-            appTitle: 'Vue CMS',
+            appTitle: 'HR System',
             loading: 'Loading...',
             toggleSidebar: 'Toggle sidebar',
             expandSidebar: 'Expand sidebar',

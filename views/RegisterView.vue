@@ -189,7 +189,7 @@ onMounted(() => {
 
         <div class="auth-shell">
             <section class="auth-visual-panel">
-                <h1 class="auth-visual-title">Vue CMS</h1>
+                <h1 class="auth-visual-title">{{ t('auth.appTitle') }}</h1>
                 <AuthQuoteCard :quote="hitokoto" :from="hitokotoFrom" />
                 <AuthAnimatedCharacters
                     :active-field="activeField"

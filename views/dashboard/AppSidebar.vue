@@ -14,7 +14,7 @@ const { t } = useI18n();
 <template>
     <aside class="sidebar" :class="{ collapsed }">
         <div class="sidebar-header">
-            <span v-if="!collapsed" class="sidebar-title">Vue CMS</span>
+            <span v-if="!collapsed" class="sidebar-title">{{ t('dashboard.appTitle') }}</span>
             <button
                 class="toggle-btn"
                 :title="collapsed ? t('dashboard.expandSidebar') : t('dashboard.collapseSidebar')"
