@@ -301,7 +301,9 @@ onMounted(() => {
                     </div>
 
                     <div class="auth-captcha-slot" :class="{ 'is-hidden': !loginNeedCaptcha }">
-                        <label class="auth-label" for="login-captcha">{{ t('auth.captchaLabel') }}</label>
+                        <label class="auth-label" for="login-captcha">{{
+                            t('auth.captchaLabel')
+                        }}</label>
                         <div class="auth-captcha-row">
                             <input
                                 id="login-captcha"
