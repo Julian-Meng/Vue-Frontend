@@ -10,6 +10,10 @@ const props = defineProps({
 const emit = defineEmits(['open-tab']);
 const { t, locale } = useI18n();
 
+const roleLabel = computed(() =>
+    props.role === 'admin' ? t('dashboard.roleAdmin') : t('dashboard.roleUser')
+);
+
 const weatherLoading = ref(false);
 const weatherError = ref('');
 const weather = ref({
@@ -88,31 +92,48 @@ function pickStat(keywords, fallback = 0) {
     return fallback;
 }
 
+function formatMetricValue(value) {
+    if (typeof value === 'number') {
+        return new Intl.NumberFormat(locale.value).format(value);
+    }
+
+    if (value === null || value === undefined || value === '') {
+        return '--';
+    }
+
+    return String(value);
+}
+
 const metricCards = computed(() => [
     {
         key: 'employees',
         label: t('dashboard.overview.metrics.employees'),
-        value: pickStat(['employee', 'staff', 'personnel', 'user_count'], 0),
+        value: formatMetricValue(pickStat(['employee', 'staff', 'personnel', 'user_count'], 0)),
+        tone: 'primary',
     },
     {
         key: 'approvals',
         label: t('dashboard.overview.metrics.approvals'),
-        value: pickStat(['pending', 'approval', 'review', 'audit'], 0),
+        value: formatMetricValue(pickStat(['pending', 'approval', 'review', 'audit'], 0)),
+        tone: 'warning',
     },
     {
         key: 'departments',
         label: t('dashboard.overview.metrics.departments'),
-        value: pickStat(['department', 'dept'], 0),
+        value: formatMetricValue(pickStat(['department', 'dept'], 0)),
+        tone: 'info',
     },
     {
         key: 'notices',
         label: t('dashboard.overview.metrics.notices'),
-        value: pickStat(['notice', 'announcement'], props.recentNotices.length),
+        value: formatMetricValue(pickStat(['notice', 'announcement'], props.recentNotices.length)),
+        tone: 'success',
     },
     {
         key: 'attendance',
         label: t('dashboard.overview.metrics.attendanceToday'),
-        value: pickStat(['attendance', 'checkin', 'check_in'], 0),
+        value: formatMetricValue(pickStat(['attendance', 'checkin', 'check_in'], 0)),
+        tone: 'danger',
     },
 ]);
 
@@ -156,310 +177,168 @@ onMounted(fetchWeather);
 
 <template>
     <div class="panel-wrapper overview-layout">
-        <h2 class="panel-title">{{ t('dashboard.overview.title') }}</h2>
-        <p class="panel-sub">
-            {{
-                role === 'admin'
-                    ? t('dashboard.overview.adminSub')
-                    : t('dashboard.overview.userSub')
-            }}
-        </p>
-
-        <section class="overview-row top-row">
-            <article class="overview-block weather-block">
-                <div class="block-head">
-                    <h3>{{ t('dashboard.overview.weatherTitle') }}</h3>
-                    <span class="weather-time">{{ weather.reportTime }}</span>
-                </div>
-                <div v-if="weatherLoading" class="block-tip">
-                    {{ t('dashboard.overview.weatherLoading') }}
-                </div>
-                <div v-else-if="weatherError" class="block-tip error">{{ weatherError }}</div>
-                <div v-else class="weather-content">
-                    <div class="weather-main">
-                        <span class="temperature">{{ weather.temperature }}°C</span>
-                        <span class="weather-type">{{ weather.weather }}</span>
-                    </div>
-                    <p class="weather-location">
-                        {{ weather.province }} {{ weather.city }} {{ weather.district }}
-                    </p>
-                    <p class="weather-meta">
-                        <span
-                            >{{ t('dashboard.overview.windDirection') }}:
-                            {{ weather.windDirection }}</span
-                        >
-                        <span
-                            >{{ t('dashboard.overview.windPower') }}: {{ weather.windPower }}</span
-                        >
-                        <span>{{ t('dashboard.overview.humidity') }}: {{ weather.humidity }}%</span>
-                    </p>
-                </div>
-            </article>
-
-            <article class="overview-block calendar-block">
-                <div class="block-head">
-                    <h3>{{ t('dashboard.overview.calendarTitle') }}</h3>
-                    <span class="calendar-month">{{ monthTitle }}</span>
-                </div>
-                <div class="calendar-grid weekday">
-                    <span v-for="day in weekdayLabels" :key="`week-${day}`">{{ day }}</span>
-                </div>
-                <div class="calendar-grid dates">
-                    <span
-                        v-for="(cell, idx) in calendarCells"
-                        :key="`day-${idx}`"
-                        :class="['date-cell', { empty: !cell, today: cell?.isToday }]"
-                    >
-                        {{ cell?.day || '' }}
-                    </span>
-                </div>
-            </article>
-        </section>
-
-        <section class="overview-row stats-row">
-            <article v-for="item in metricCards" :key="item.key" class="metric-pill">
-                <span class="metric-label">{{ item.label }}</span>
-                <strong class="metric-value">{{ item.value }}</strong>
-            </article>
-        </section>
-
-        <section class="overview-row notice-row overview-block">
-            <div class="block-head">
-                <h3>{{ t('dashboard.overview.latestNotices') }}</h3>
+        <header class="overview-hero">
+            <div class="hero-copy">
+                <span class="role-pill">{{ roleLabel }}</span>
+                <h2 class="hero-title">{{ t('dashboard.overview.title') }}</h2>
+                <p class="hero-sub">
+                    {{
+                        role === 'admin'
+                            ? t('dashboard.overview.adminSub')
+                            : t('dashboard.overview.userSub')
+                    }}
+                </p>
             </div>
-            <div v-if="recentNotices.length === 0" class="block-tip">
-                {{ t('dashboard.overview.noNotices') }}
+            <div class="hero-actions">
+                <button class="btn btn-secondary" @click="fetchWeather">
+                    {{ t('dashboard.overview.refreshWeather') }}
+                </button>
+                <button class="btn btn-primary" @click="openNoticePanel">
+                    {{ t('dashboard.overview.viewNotices') }}
+                </button>
             </div>
-            <ul v-else class="notice-list">
-                <li
-                    v-for="notice in recentNotices.slice(0, 6)"
-                    :key="notice.id || notice.title"
-                    class="overview-notice-item"
-                    @click="openNoticePanel"
-                >
-                    <div class="overview-notice-main">
-                        <strong class="overview-notice-title">{{ notice.title }}</strong>
-                        <p class="overview-notice-summary">
-                            {{ notice.summary || notice.content || '-' }}
-                        </p>
+        </header>
+
+        <div class="overview-main">
+            <section class="overview-column main-left">
+                <article class="overview-card metric-board">
+                    <div class="card-header">
+                        <div>
+                            <h3>{{ t('dashboard.overview.metricsTitle') }}</h3>
+                            <p class="card-sub">{{ t('dashboard.overview.metricsSub') }}</p>
+                        </div>
+                        <span class="card-note">{{ t('dashboard.overview.metricsNote') }}</span>
                     </div>
-                    <span class="overview-notice-time">{{ notice.createdAtText || '-' }}</span>
-                </li>
-            </ul>
-        </section>
+                    <div class="metric-grid">
+                        <article
+                            v-for="item in metricCards"
+                            :key="item.key"
+                            class="metric-card"
+                            :class="`tone-${item.tone}`"
+                        >
+                            <div class="metric-card-top">
+                                <span
+                                    class="metric-icon"
+                                    :class="`tone-${item.tone}`"
+                                    aria-hidden="true"
+                                ></span>
+                                <span class="metric-label">{{ item.label }}</span>
+                            </div>
+                            <div class="metric-value">{{ item.value }}</div>
+                        </article>
+                    </div>
+                </article>
+
+                <article class="overview-card notice-board">
+                    <div class="card-header">
+                        <div>
+                            <h3>{{ t('dashboard.overview.latestNotices') }}</h3>
+                            <p class="card-sub">{{ t('dashboard.overview.noticeSub') }}</p>
+                        </div>
+                        <button class="btn btn-ghost" @click="openNoticePanel">
+                            {{ t('dashboard.overview.viewNotices') }}
+                        </button>
+                    </div>
+                    <div v-if="recentNotices.length === 0" class="card-tip">
+                        {{ t('dashboard.overview.noNotices') }}
+                    </div>
+                    <ul v-else class="notice-feed">
+                        <li
+                            v-for="notice in recentNotices.slice(0, 6)"
+                            :key="notice.id || notice.title"
+                            class="notice-feed-item"
+                        >
+                            <button
+                                class="notice-feed-trigger"
+                                type="button"
+                                @click="openNoticePanel"
+                            >
+                                <div class="notice-feed-main">
+                                    <strong class="notice-feed-title">{{ notice.title }}</strong>
+                                    <p class="notice-feed-summary">
+                                        {{ notice.summary || notice.content || '-' }}
+                                    </p>
+                                </div>
+                                <span class="notice-feed-time">{{
+                                    notice.createdAtText || '-'
+                                }}</span>
+                            </button>
+                        </li>
+                    </ul>
+                </article>
+            </section>
+
+            <section class="overview-column main-right">
+                <article class="overview-card weather-card">
+                    <div class="card-header">
+                        <div>
+                            <h3>{{ t('dashboard.overview.weatherTitle') }}</h3>
+                            <p class="card-sub">
+                                {{ weather.province }} {{ weather.city }} {{ weather.district }}
+                            </p>
+                        </div>
+                        <span class="card-note">{{ weather.reportTime }}</span>
+                    </div>
+                    <div v-if="weatherLoading" class="card-tip">
+                        {{ t('dashboard.overview.weatherLoading') }}
+                    </div>
+                    <div v-else-if="weatherError" class="card-tip error">{{ weatherError }}</div>
+                    <div v-else class="weather-body">
+                        <div class="weather-primary">
+                            <span class="temperature">{{ weather.temperature }}°C</span>
+                            <span class="weather-type">{{ weather.weather }}</span>
+                        </div>
+                        <div class="weather-meta">
+                            <div class="weather-meta-item">
+                                <span class="weather-meta-label">
+                                    {{ t('dashboard.overview.windDirection') }}
+                                </span>
+                                <span class="weather-meta-value">
+                                    {{ weather.windDirection }}
+                                </span>
+                            </div>
+                            <div class="weather-meta-item">
+                                <span class="weather-meta-label">
+                                    {{ t('dashboard.overview.windPower') }}
+                                </span>
+                                <span class="weather-meta-value">{{ weather.windPower }}</span>
+                            </div>
+                            <div class="weather-meta-item">
+                                <span class="weather-meta-label">
+                                    {{ t('dashboard.overview.humidity') }}
+                                </span>
+                                <span class="weather-meta-value">{{ weather.humidity }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="overview-card calendar-card">
+                    <div class="card-header">
+                        <div>
+                            <h3>{{ t('dashboard.overview.calendarTitle') }}</h3>
+                            <p class="card-sub">{{ monthTitle }}</p>
+                        </div>
+                    </div>
+                    <div class="calendar-grid weekday">
+                        <span v-for="day in weekdayLabels" :key="`week-${day}`">{{ day }}</span>
+                    </div>
+                    <div class="calendar-grid dates">
+                        <span
+                            v-for="(cell, idx) in calendarCells"
+                            :key="`day-${idx}`"
+                            :class="['date-cell', { empty: !cell, today: cell?.isToday }]"
+                        >
+                            {{ cell?.day || '' }}
+                        </span>
+                    </div>
+                </article>
+            </section>
+        </div>
     </div>
 </template>
 
 <style scoped>
 @import '../../styles/panel-common.css';
-
-.overview-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.overview-row {
-    width: 100%;
-}
-
-.top-row {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 16px;
-}
-
-.overview-block {
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    background: #fff;
-    padding: 16px;
-}
-
-.block-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.block-head h3 {
-    margin: 0;
-    font-size: 16px;
-    color: #0f172a;
-}
-
-.weather-time,
-.calendar-month {
-    color: #64748b;
-    font-size: 12px;
-}
-
-.block-tip {
-    color: #64748b;
-    font-size: 13px;
-}
-
-.block-tip.error {
-    color: #dc2626;
-}
-
-.weather-main {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-
-.temperature {
-    font-size: 30px;
-    font-weight: 700;
-    color: #2563eb;
-}
-
-.weather-type {
-    font-size: 15px;
-    color: #334155;
-    font-weight: 600;
-}
-
-.weather-location {
-    margin: 8px 0 0;
-    color: #0f172a;
-    font-size: 14px;
-}
-
-.weather-meta {
-    margin: 10px 0 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    font-size: 13px;
-    color: #475569;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-}
-
-.calendar-grid.weekday span {
-    text-align: center;
-    color: #64748b;
-    font-size: 12px;
-}
-
-.date-cell {
-    height: 30px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    color: #334155;
-    background: #f8fafc;
-}
-
-.date-cell.empty {
-    background: transparent;
-}
-
-.date-cell.today {
-    background: #dbeafe;
-    color: #1d4ed8;
-    font-weight: 700;
-}
-
-.stats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-}
-
-.metric-pill {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 12px 14px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.metric-label {
-    color: #64748b;
-    font-size: 13px;
-}
-
-.metric-value {
-    color: #0f172a;
-    font-size: 22px;
-    line-height: 1;
-}
-
-.notice-row {
-    min-height: 260px;
-}
-
-.notice-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.overview-notice-item {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    cursor: pointer;
-}
-
-.overview-notice-main {
-    min-width: 0;
-    flex: 1;
-}
-
-.overview-notice-title {
-    color: #0f172a;
-    font-size: 14px;
-}
-
-.overview-notice-summary {
-    margin: 4px 0 0;
-    color: #64748b;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.overview-notice-time {
-    flex-shrink: 0;
-    color: #94a3b8;
-    font-size: 12px;
-}
-
-@media (max-width: 1100px) {
-    .top-row {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .metric-value {
-        font-size: 18px;
-    }
-
-    .overview-notice-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-}
+@import '../../styles/overview-panel.css';
 </style>
