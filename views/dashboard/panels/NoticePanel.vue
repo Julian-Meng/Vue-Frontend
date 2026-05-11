@@ -12,6 +12,13 @@ const props = defineProps({
 const { t, locale } = useI18n();
 
 const isAdmin = () => props.role === 'admin';
+const isReadOnly = computed(() => !isAdmin());
+const noticeModalTitle = computed(() => {
+    if (!editTarget.value) {
+        return t('dashboard.notice.create');
+    }
+    return isAdmin() ? t('dashboard.notice.edit') : t('dashboard.notice.detail');
+});
 
 const notices = ref([]);
 const loading = ref(false);
@@ -69,7 +76,7 @@ function closeModal() {
 
 async function saveNotice() {
     if (!form.value.title.trim()) {
-        ElMessage.warning('请填写标题');
+        ElMessage.warning(t('dashboard.notice.messages.titleRequired'));
         return;
     }
     saving.value = true;
@@ -80,10 +87,10 @@ async function saveNotice() {
             await adminApi.createNotice(undefined, form.value);
         }
         closeModal();
-        ElMessage.success('保存成功');
+        ElMessage.success(t('dashboard.notice.messages.saveSuccess'));
         await fetchNotices();
     } catch (e) {
-        ElMessage.error(e?.message || '保存失败');
+        ElMessage.error(e?.message || t('dashboard.notice.messages.saveFailed'));
     } finally {
         saving.value = false;
     }
@@ -91,21 +98,25 @@ async function saveNotice() {
 
 async function deleteNotice(id) {
     try {
-        await ElMessageBox.confirm('确认删除该公告？', '确认操作', {
-            confirmButtonText: '确认',
-            cancelButtonText: '取消',
-            type: 'warning',
-        });
+        await ElMessageBox.confirm(
+            t('dashboard.notice.messages.deleteConfirmMessage'),
+            t('dashboard.notice.messages.deleteConfirmTitle'),
+            {
+                confirmButtonText: t('dashboard.common.confirm'),
+                cancelButtonText: t('dashboard.common.cancel'),
+                type: 'warning',
+            }
+        );
     } catch {
         return;
     }
 
     try {
         await adminApi.deleteNotice(undefined, id);
-        ElMessage.success('删除成功');
+        ElMessage.success(t('dashboard.notice.messages.deleteSuccess'));
         await fetchNotices();
     } catch (e) {
-        ElMessage.error(e?.message || '删除失败');
+        ElMessage.error(e?.message || t('dashboard.notice.messages.deleteFailed'));
     }
 }
 
@@ -130,20 +141,20 @@ function exportNotices() {
 
     try {
         exportToExcel({
-            fileName: `公告数据_page_${page.value}`,
-            sheetName: '公告数据',
+            fileName: t('dashboard.notice.export.fileName', { page: page.value }),
+            sheetName: t('dashboard.notice.export.sheetName'),
             rows: formattedNotices.value,
             columns: [
-                { key: 'id', label: 'ID' },
-                { key: 'title', label: '标题' },
+                { key: 'id', label: t('dashboard.notice.export.columns.id') },
+                { key: 'title', label: t('dashboard.notice.export.columns.title') },
                 {
                     key: 'summary',
-                    label: '内容摘要',
+                    label: t('dashboard.notice.export.columns.summary'),
                     formatter: (row) => row.summary || row.content || '—',
                 },
                 {
                     key: 'createdAtText',
-                    label: '创建时间',
+                    label: t('dashboard.notice.export.columns.createdAt'),
                     formatter: (row) => row.createdAtText || '—',
                 },
             ],
@@ -191,32 +202,40 @@ onMounted(fetchNotices);
         <div v-else-if="formattedNotices.length === 0" class="tip">
             {{ t('dashboard.common.noData') }}
         </div>
-        <div v-else class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>标题</th>
-                        <th>内容摘要</th>
-                        <th>创建时间</th>
-                        <th v-if="isAdmin()">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in formattedNotices" :key="item.id || item.title">
-                        <td>{{ item.id }}</td>
-                        <td>{{ item.title }}</td>
-                        <td class="cell-truncate">{{ item.summary || item.content || '—' }}</td>
-                        <td>{{ item.createdAtText || '—' }}</td>
-                        <td v-if="isAdmin()">
-                            <button class="btn-link" @click="openEdit(item)">编辑</button>
-                            <button class="btn-link danger" @click="deleteNotice(item.id)">
-                                删除
+        <div v-else class="notice-list">
+            <article
+                v-for="item in formattedNotices"
+                :key="item.id || item.title"
+                class="notice-card"
+            >
+                <header class="notice-card-header">
+                    <div>
+                        <h3 class="notice-title">
+                            <button class="notice-title-trigger" @click="openEdit(item)">
+                                {{ item.title }}
                             </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        </h3>
+                        <div class="notice-meta">
+                            <span v-if="item.id" class="notice-meta-item">
+                                {{ t('dashboard.notice.idPrefix') }}: {{ item.id }}
+                            </span>
+                            <span class="notice-meta-item">{{ item.createdAtText || '—' }}</span>
+                            <span v-if="item.publisher" class="notice-meta-item">
+                                {{ t('dashboard.notice.publisherPrefix') }}{{ item.publisher }}
+                            </span>
+                        </div>
+                    </div>
+                    <div v-if="isAdmin()" class="notice-actions">
+                        <button class="btn-link" @click.stop="openEdit(item)">
+                            {{ t('dashboard.notice.actions.edit') }}
+                        </button>
+                        <button class="btn-link danger" @click.stop="deleteNotice(item.id)">
+                            {{ t('dashboard.notice.actions.delete') }}
+                        </button>
+                    </div>
+                </header>
+                <div class="notice-content">{{ item.content || item.summary || '—' }}</div>
+            </article>
         </div>
 
         <div v-if="!loading && !error" class="pagination">
@@ -235,36 +254,53 @@ onMounted(fetchNotices);
 
         <!-- 弹窗 -->
         <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-            <div class="modal-box">
-                <h3 class="modal-title">
-                    {{ editTarget ? t('dashboard.notice.edit') : t('dashboard.notice.create') }}
-                </h3>
-                <div class="form-row">
-                    <label>标题</label>
-                    <input v-model="form.title" class="input" placeholder="请输入公告标题" />
+            <div class="modal-box notice-modal">
+                <div class="notice-modal-title">
+                    <h3 class="modal-title">{{ noticeModalTitle }}</h3>
+                    <span v-if="isReadOnly" class="notice-view-badge">
+                        {{ t('dashboard.notice.viewMode') }}
+                    </span>
                 </div>
-                <div class="form-row">
-                    <label>内容</label>
+                <div class="notice-form-grid">
+                    <div class="form-row">
+                        <label>{{ t('dashboard.notice.form.title') }}</label>
+                        <input
+                            v-model="form.title"
+                            class="input"
+                            :placeholder="t('dashboard.notice.placeholder.title')"
+                            :readonly="isReadOnly"
+                        />
+                    </div>
+                    <div class="form-row">
+                        <label>{{ t('dashboard.notice.form.publisher') }}</label>
+                        <input
+                            v-model="form.publisher"
+                            class="input"
+                            :placeholder="t('dashboard.notice.placeholder.publisher')"
+                            :readonly="isReadOnly"
+                        />
+                    </div>
+                </div>
+                <div class="form-row notice-content-row">
+                    <label>{{ t('dashboard.notice.form.content') }}</label>
                     <textarea
                         v-model="form.content"
                         class="input"
-                        rows="5"
-                        placeholder="请输入公告内容"
-                    />
-                </div>
-                <div class="form-row">
-                    <label>发布人</label>
-                    <input
-                        v-model="form.publisher"
-                        class="input"
-                        placeholder="可选，留空由后端处理"
+                        rows="8"
+                        :placeholder="t('dashboard.notice.placeholder.content')"
+                        :readonly="isReadOnly"
                     />
                 </div>
                 <div class="modal-actions">
                     <button class="btn btn-secondary" @click="closeModal">
                         {{ t('dashboard.common.cancel') }}
                     </button>
-                    <button :disabled="saving" class="btn btn-primary" @click="saveNotice">
+                    <button
+                        v-if="isAdmin()"
+                        :disabled="saving"
+                        class="btn btn-primary"
+                        @click="saveNotice"
+                    >
                         {{ saving ? t('dashboard.notice.saving') : t('dashboard.common.save') }}
                     </button>
                 </div>
@@ -276,4 +312,5 @@ onMounted(fetchNotices);
 <style scoped>
 @import '../../styles/panel-common.css';
 @import '../../styles/dashboard-pages.css';
+@import '../../styles/notice-panel.css';
 </style>
