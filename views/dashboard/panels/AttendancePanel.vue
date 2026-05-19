@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi, userApi } from '../../../apis';
 import { exportToExcel } from '../../../utils/excelExport';
+import { formatDate, formatDateTime } from '../../../utils/dateFormatter';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -26,6 +27,7 @@ const searchDeptId = ref('');
 // --- 分页 ---
 const page = ref(1);
 const pageSize = 10;
+const EMPTY_DISPLAY = '—';
 
 // --- 编辑（管理员） ---
 const editingRow = ref(null);
@@ -178,17 +180,24 @@ function exportAttendance() {
                 {
                     key: 'date',
                     label: '日期',
-                    formatter: (row) => row.date ?? row.work_date ?? '—',
+                    formatter: (row) =>
+                        formatDate(row.date ?? row.work_date, { fallback: EMPTY_DISPLAY }),
                 },
                 {
                     key: 'check_in',
                     label: '上班时间',
-                    formatter: (row) => row.check_in ?? row.checkin_time ?? '—',
+                    formatter: (row) =>
+                        formatDateTime(row.check_in ?? row.checkin_time, {
+                            fallback: EMPTY_DISPLAY,
+                        }),
                 },
                 {
                     key: 'check_out',
                     label: '下班时间',
-                    formatter: (row) => row.check_out ?? row.checkout_time ?? '—',
+                    formatter: (row) =>
+                        formatDateTime(row.check_out ?? row.checkout_time, {
+                            fallback: EMPTY_DISPLAY,
+                        }),
                 },
                 {
                     key: 'status',
@@ -325,7 +334,9 @@ onMounted(fetchRecords);
                         <td v-if="isAdmin()">
                             {{ row.employee_name ?? row.emp_id ?? row.user_id ?? '—' }}
                         </td>
-                        <td>{{ row.date ?? row.work_date ?? '—' }}</td>
+                        <td>
+                            {{ formatDate(row.date ?? row.work_date, { fallback: EMPTY_DISPLAY }) }}
+                        </td>
 
                         <template v-if="isAdmin() && editingRow === row.id">
                             <td>
@@ -364,8 +375,20 @@ onMounted(fetchRecords);
                             </td>
                         </template>
                         <template v-else>
-                            <td>{{ row.check_in ?? row.checkin_time ?? '—' }}</td>
-                            <td>{{ row.check_out ?? row.checkout_time ?? '—' }}</td>
+                            <td>
+                                {{
+                                    formatDateTime(row.check_in ?? row.checkin_time, {
+                                        fallback: EMPTY_DISPLAY,
+                                    })
+                                }}
+                            </td>
+                            <td>
+                                {{
+                                    formatDateTime(row.check_out ?? row.checkout_time, {
+                                        fallback: EMPTY_DISPLAY,
+                                    })
+                                }}
+                            </td>
                             <td>{{ row.status ?? '—' }}</td>
                             <td v-if="isAdmin()">
                                 <button class="btn-link" @click="startEdit(row)">编辑</button>

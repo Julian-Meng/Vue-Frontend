@@ -22,6 +22,8 @@ const messages = {
         common: {
             localeLabel: '中文',
             switchTo: 'EN',
+            dateFormat: 'YYYY年MM月DD日',
+            dateTimeFormat: 'YYYY年MM月DD日 HH:mm',
         },
         auth: {
             appTitle: '人事管理系统',
@@ -523,6 +525,8 @@ const messages = {
         common: {
             localeLabel: 'EN',
             switchTo: '中文',
+            dateFormat: 'MM/DD/YYYY',
+            dateTimeFormat: 'MM/DD/YYYY HH:mm',
         },
         auth: {
             appTitle: 'HR Management System',

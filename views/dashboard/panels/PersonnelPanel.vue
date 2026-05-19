@@ -6,6 +6,7 @@ import { ElMessage } from 'element-plus';
 import { adminApi, userApi } from '../../../apis';
 import { useAuthStore } from '../../../src/stores/auth';
 import { exportToExcel } from '../../../utils/excelExport';
+import { formatDate, formatDateTime } from '../../../utils/dateFormatter';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -37,6 +38,7 @@ const detailError = ref('');
 const detailTarget = ref(null);
 const hasMore = ref(false);
 const userFallbackTip = ref('');
+const EMPTY_DISPLAY = '-';
 
 const USER_PERSONNEL_HISTORY_KEY = 'user_personnel_history_v1';
 
@@ -70,7 +72,7 @@ function textOrEmpty(value) {
 
 function displayValue(value) {
     if (value === undefined || value === null || value === '') {
-        return '-';
+        return EMPTY_DISPLAY;
     }
     return value;
 }
@@ -122,8 +124,8 @@ function canUseLocalStorage() {
 
 function sortByCreateDesc(rows) {
     return [...rows].sort((a, b) => {
-        const aTime = new Date(resolveCreatedAt(a)).getTime() || 0;
-        const bTime = new Date(resolveCreatedAt(b)).getTime() || 0;
+        const aTime = new Date(resolveCreatedAtRaw(a)).getTime() || 0;
+        const bTime = new Date(resolveCreatedAtRaw(b)).getTime() || 0;
         return bTime - aTime;
     });
 }
@@ -295,21 +297,28 @@ function isLeaveRecord(item) {
 
 function leaveRangeText(item) {
     if (!isLeaveRecord(item)) {
-        return '-';
+        return EMPTY_DISPLAY;
     }
 
-    const start = textOrEmpty(item?.leave_start_at);
-    const end = textOrEmpty(item?.leave_end_at);
+    const rawStart = textOrEmpty(item?.leave_start_at);
+    const rawEnd = textOrEmpty(item?.leave_end_at);
 
-    if (!start && !end) {
-        return '-';
+    if (!rawStart && !rawEnd) {
+        return EMPTY_DISPLAY;
     }
 
-    return `${start || '-'} ~ ${end || '-'}`;
+    const start = rawStart ? formatDate(rawStart, { fallback: EMPTY_DISPLAY }) : EMPTY_DISPLAY;
+    const end = rawEnd ? formatDate(rawEnd, { fallback: EMPTY_DISPLAY }) : EMPTY_DISPLAY;
+
+    return `${start} ~ ${end}`;
+}
+
+function resolveCreatedAtRaw(item) {
+    return item?.create_at ?? item?.created_at ?? item?.apply_time ?? '';
 }
 
 function resolveCreatedAt(item) {
-    return item?.create_at ?? item?.created_at ?? item?.apply_time ?? '-';
+    return formatDateTime(resolveCreatedAtRaw(item), { fallback: EMPTY_DISPLAY });
 }
 
 function normalizeEndDateValidation() {
@@ -1078,7 +1087,9 @@ onMounted(fetchList);
                                 t('dashboard.personnel.form.leaveStart')
                             }}</span>
                             <span class="detail-value">{{
-                                displayValue(detailTarget?.leave_start_at)
+                                formatDate(detailTarget?.leave_start_at, {
+                                    fallback: EMPTY_DISPLAY,
+                                })
                             }}</span>
                         </div>
                         <div class="detail-item">
@@ -1086,7 +1097,7 @@ onMounted(fetchList);
                                 t('dashboard.personnel.form.leaveEnd')
                             }}</span>
                             <span class="detail-value">{{
-                                displayValue(detailTarget?.leave_end_at)
+                                formatDate(detailTarget?.leave_end_at, { fallback: EMPTY_DISPLAY })
                             }}</span>
                         </div>
                         <div class="detail-item detail-item-wide">

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
@@ -14,7 +14,7 @@ import {
     ChatDotRound,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '../src/stores/auth';
-import { adminApi, getNoticeList, userApi } from '../apis';
+import { adminApi, getNoticeList, request, userApi } from '../apis';
 import { formatNoticeListForDashboard } from '../utils/noticeFormatter';
 import AppSidebar from './dashboard/AppSidebar.vue';
 import AppHeader from './dashboard/AppHeader.vue';
@@ -40,6 +40,35 @@ const role = ref('user');
 const dashboardData = ref(null);
 const rawNotices = ref([]);
 const loading = ref(true);
+const dashboardRefreshing = ref(false);
+
+function buildTodayParam() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+async function fetchTodayAttendanceCount(currentRole) {
+    const date = buildTodayParam();
+    const isAdmin = currentRole === 'admin';
+    const url = isAdmin ? '/api/admin/attendance' : '/api/user/attendance/my';
+    const payload = await request({
+        url,
+        method: 'GET',
+        params: {
+            start: date,
+            end: date,
+            page: 1,
+            page_size: 1,
+        },
+        unwrap: false,
+    });
+
+    const total = Number(payload?.total ?? payload?.data?.length ?? 0);
+    return Number.isFinite(total) ? total : 0;
+}
 
 function decodeJwtRole(token) {
     try {
@@ -61,30 +90,70 @@ async function init() {
     role.value = decodeJwtRole(authStore.token);
 
     try {
+        await refreshDashboardData({ includeNotices: true, setLoading: true });
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function refreshDashboardData({ includeNotices = false, setLoading = false } = {}) {
+    if (dashboardRefreshing.value) {
+        return;
+    }
+
+    dashboardRefreshing.value = true;
+    if (setLoading) {
+        loading.value = true;
+    }
+
+    try {
         const dashboardPromise =
             role.value === 'admin' ? adminApi.getAdminDashboard() : userApi.getUserDashboard();
+        const noticePromise = includeNotices
+            ? getNoticeList({ page: 1, page_size: 5 })
+            : Promise.resolve(null);
 
         const [dashboardResult, noticeResult] = await Promise.allSettled([
             dashboardPromise,
-            getNoticeList({ page: 1, page_size: 5 }),
+            noticePromise,
         ]);
 
+        let dashboardPayload = null;
+
         if (dashboardResult.status === 'fulfilled') {
-            dashboardData.value = dashboardResult.value;
+            dashboardPayload = dashboardResult.value;
         } else if (role.value === 'admin') {
             try {
-                dashboardData.value = await userApi.getUserDashboard();
+                dashboardPayload = await userApi.getUserDashboard();
                 role.value = 'user';
             } catch {
-                dashboardData.value = null;
+                dashboardPayload = null;
             }
         }
+
+        if (dashboardPayload && typeof dashboardPayload === 'object') {
+            try {
+                const attendanceCount = await fetchTodayAttendanceCount(role.value);
+                dashboardPayload = {
+                    ...dashboardPayload,
+                    today_attendance: attendanceCount,
+                    today_checkin: attendanceCount,
+                };
+            } catch {
+                // Keep dashboard data even if attendance summary fails.
+            }
+        }
+
+        dashboardData.value = dashboardPayload;
 
         if (noticeResult.status === 'fulfilled' && Array.isArray(noticeResult.value)) {
             rawNotices.value = noticeResult.value;
         }
     } finally {
-        loading.value = false;
+        if (setLoading) {
+            loading.value = false;
+        }
+        dashboardRefreshing.value = false;
     }
 }
 
@@ -151,6 +220,15 @@ function openSupportChatPanel() {
 }
 
 onMounted(init);
+
+watch(
+    () => activeTab.value,
+    (nextTab) => {
+        if (nextTab === 'overview') {
+            refreshDashboardData({ includeNotices: true });
+        }
+    }
+);
 </script>
 
 <template>

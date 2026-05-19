@@ -78,9 +78,9 @@ const sections = computed(() => {
                     editable: true,
                 },
                 {
-                    key: 'gender',
+                    key: 'sex',
                     label: t('dashboard.profile.fields.gender'),
-                    value: displayValue(current.gender),
+                    value: displayValue(current.sex),
                     editable: false,
                 },
                 {
@@ -126,9 +126,9 @@ const sections = computed(() => {
             title: t('dashboard.profile.sections.contact'),
             fields: [
                 {
-                    key: 'phone',
+                    key: 'tel',
                     label: t('dashboard.profile.fields.phone'),
-                    value: displayValue(current.phone),
+                    value: displayValue(current.tel),
                     editable: true,
                 },
                 {
@@ -138,9 +138,9 @@ const sections = computed(() => {
                     editable: true,
                 },
                 {
-                    key: 'address',
+                    key: 'addr',
                     label: t('dashboard.profile.fields.address'),
-                    value: displayValue(current.address),
+                    value: displayValue(current.addr),
                     editable: true,
                     type: 'textarea',
                 },

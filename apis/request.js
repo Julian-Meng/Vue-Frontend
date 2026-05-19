@@ -208,6 +208,38 @@ function isStandardApiPayload(payload) {
     return typeof payload === 'object' && payload !== null && 'code' in payload && 'msg' in payload;
 }
 
+function extractErrorMeta(payload, response) {
+    const meta = {};
+
+    if (payload && typeof payload === 'object') {
+        if ('code' in payload) {
+            meta.businessCode = payload.code;
+        }
+        if (typeof payload.error_code === 'string') {
+            meta.errorCode = payload.error_code;
+        } else if (typeof payload.errorCode === 'string') {
+            meta.errorCode = payload.errorCode;
+        }
+        if (typeof payload.request_id === 'string') {
+            meta.requestId = payload.request_id;
+        } else if (typeof payload.requestId === 'string') {
+            meta.requestId = payload.requestId;
+        }
+        if (payload.detail !== undefined) {
+            meta.detail = payload.detail;
+        }
+    }
+
+    const headerRequestId =
+        response && response.headers ? response.headers.get('x-request-id') : '';
+
+    if (!meta.requestId && headerRequestId) {
+        meta.requestId = headerRequestId;
+    }
+
+    return meta;
+}
+
 async function parseResponse(response, { unwrap = true } = {}) {
     const contentType = response.headers.get('content-type') || '';
     const isJson = contentType.includes('application/json');
@@ -225,6 +257,7 @@ async function parseResponse(response, { unwrap = true } = {}) {
         throw createRequestError(errorMessage, {
             status: response.status,
             payload,
+            ...extractErrorMeta(payload, response),
         });
     }
 
@@ -234,8 +267,8 @@ async function parseResponse(response, { unwrap = true } = {}) {
         if (payload.code !== 0) {
             throw createRequestError(payload.msg || 'Request failed', {
                 status: response.status,
-                businessCode: payload.code,
                 payload,
+                ...extractErrorMeta(payload, response),
             });
         }
 
