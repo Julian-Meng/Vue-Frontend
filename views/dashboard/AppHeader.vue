@@ -1,14 +1,29 @@
 <script setup>
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toggleLocale } from '../../utils/i18n';
+import { isAdminLike, isSuperadmin, normalizeRole } from '../../utils/roleUtils';
 
-defineProps({
+const props = defineProps({
     role: { type: String, default: 'user' },
     activeLabel: { type: String, default: '' },
 });
 
 const emit = defineEmits(['logout', 'toggle-sidebar']);
 const { t } = useI18n();
+
+const normalizedRole = computed(() => normalizeRole(props.role));
+const roleLabel = computed(() => {
+    if (isSuperadmin(normalizedRole.value)) {
+        return t('dashboard.roleSuperadmin');
+    }
+
+    if (isAdminLike(normalizedRole.value)) {
+        return t('dashboard.roleAdmin');
+    }
+
+    return t('dashboard.roleUser');
+});
 </script>
 
 <template>
@@ -25,8 +40,8 @@ const { t } = useI18n();
         </div>
         <div class="header-right">
             <button class="locale-btn" @click="toggleLocale">{{ t('common.switchTo') }}</button>
-            <span class="role-badge" :class="role">
-                {{ role === 'admin' ? t('dashboard.roleAdmin') : t('dashboard.roleUser') }}
+            <span class="role-badge" :class="normalizedRole">
+                {{ roleLabel }}
             </span>
             <button class="logout-btn" @click="emit('logout')">{{ t('dashboard.logout') }}</button>
         </div>

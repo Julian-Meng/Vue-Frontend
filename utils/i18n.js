@@ -77,6 +77,7 @@ const messages = {
             expandSidebar: '展开侧栏',
             collapseSidebar: '收起侧栏',
             roleAdmin: '管理员',
+            roleSuperadmin: '超级管理员',
             roleUser: '普通用户',
             logout: '退出登录',
             nav: {
@@ -580,6 +581,7 @@ const messages = {
             expandSidebar: 'Expand sidebar',
             collapseSidebar: 'Collapse sidebar',
             roleAdmin: 'Admin',
+            roleSuperadmin: 'Superadmin',
             roleUser: 'User',
             logout: 'Log out',
             nav: {

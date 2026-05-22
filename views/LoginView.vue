@@ -9,6 +9,7 @@ import { getCaptcha } from '../apis/public';
 import { request } from '../apis/request';
 import { useAuthStore } from '../src/stores/auth';
 import { toggleLocale } from '../utils/i18n';
+import { normalizeRole } from '../utils/roleUtils';
 import AuthAnimatedCharacters from './components/AuthAnimatedCharacters.vue';
 import AuthQuoteCard from './components/AuthQuoteCard.vue';
 import './styles/auth-pages.css';
@@ -47,6 +48,10 @@ function extractToken(payload) {
         (typeof payload?.data === 'string' ? payload.data : '') ||
         (typeof payload === 'string' ? payload : '')
     );
+}
+
+function extractRole(payload) {
+    return payload?.role || payload?.data?.role || '';
 }
 
 function resolveAuthErrorMessage(error, fallbackKey) {
@@ -152,12 +157,14 @@ async function handleLogin() {
         });
 
         const token = extractToken(result);
+        const role = normalizeRole(extractRole(result));
 
         if (!token) {
             throw new Error(t('auth.loginTokenMissing'));
         }
 
         authStore.setToken(token, { remember: rememberPassword.value });
+        authStore.setRole(role, { remember: rememberPassword.value });
 
         // 当前认证 store 默认持久化 token。
         clearLoginCaptchaState();

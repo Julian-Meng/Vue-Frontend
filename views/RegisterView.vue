@@ -7,6 +7,7 @@ import { Hide, View } from '@element-plus/icons-vue';
 
 import { getCaptcha, register } from '../apis/public';
 import { toggleLocale } from '../utils/i18n';
+import { normalizeRole } from '../utils/roleUtils';
 import AuthAnimatedCharacters from './components/AuthAnimatedCharacters.vue';
 import AuthQuoteCard from './components/AuthQuoteCard.vue';
 import './styles/auth-pages.css';
@@ -119,7 +120,7 @@ async function handleRegister() {
         await register({
             username,
             password,
-            role: registerForm.role,
+            role: normalizeRole(registerForm.role),
             captcha_id: registerCaptchaId.value,
             captcha_code: registerCaptchaCode.value.trim(),
         });

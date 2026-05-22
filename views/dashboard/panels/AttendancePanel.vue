@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi, userApi } from '../../../apis';
 import { exportToExcel } from '../../../utils/excelExport';
 import { formatDate, formatDateTime } from '../../../utils/dateFormatter';
+import { isAdminLike } from '../../../utils/roleUtils';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -13,7 +14,7 @@ const { t, locale } = useI18n();
 
 const dateDisplayFormat = computed(() => t('dashboard.attendance.dateDisplayFormat'));
 
-const isAdmin = () => props.role === 'admin';
+const isAdmin = () => isAdminLike(props.role);
 
 // --- 数据 ---
 const records = ref([]);

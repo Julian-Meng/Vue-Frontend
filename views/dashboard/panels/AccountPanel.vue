@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi } from '../../../apis';
 import { exportToExcel } from '../../../utils/excelExport';
+import { canChangeAccountRole, normalizeRole } from '../../../utils/roleUtils';
 
-defineProps({
+const props = defineProps({
     role: { type: String, default: 'admin' },
 });
 const { t } = useI18n();
@@ -20,6 +21,10 @@ const showModal = ref(false);
 const editTarget = ref(null);
 const form = ref({ username: '', password: '', role: 'staff', status: 1 });
 const saving = ref(false);
+
+const roleChangeLocked = computed(
+    () => Boolean(editTarget.value) && !canChangeAccountRole(props.role)
+);
 
 async function fetchAccounts() {
     loading.value = true;
@@ -47,7 +52,7 @@ function openEdit(item) {
     form.value = {
         username: item.username ?? '',
         password: '',
-        role: item.role ?? 'staff',
+        role: normalizeRole(item.role) || 'staff',
         status: Number(item.status ?? 1),
     };
     showModal.value = true;
@@ -64,9 +69,11 @@ async function saveAccount() {
     }
     saving.value = true;
     try {
+        const rawRole = normalizeRole(form.value.role);
+        const fallbackRole = normalizeRole(editTarget.value?.role) || rawRole || 'staff';
         const payload = {
             username: form.value.username,
-            role: form.value.role,
+            role: roleChangeLocked.value ? fallbackRole : rawRole || fallbackRole,
             status: Number(form.value.status),
         };
         if (form.value.password) payload.password = form.value.password;
@@ -120,7 +127,7 @@ function nextPage() {
 
 function roleBadgeClass(roleName) {
     const normalized = String(roleName || '').toLowerCase();
-    if (normalized === 'admin' || normalized === 'staff' || normalized === 'user') {
+    if (['admin', 'staff', 'user', 'superadmin'].includes(normalized)) {
         return normalized;
     }
     return 'user';
@@ -263,7 +270,7 @@ onMounted(fetchAccounts);
                 </div>
                 <div class="form-row">
                     <label>角色</label>
-                    <select v-model="form.role" class="input">
+                    <select v-model="form.role" class="input" :disabled="roleChangeLocked">
                         <option value="staff">普通用户 (staff)</option>
                         <option value="admin">管理员 (admin)</option>
                     </select>

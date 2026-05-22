@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from '../src/stores/auth';
 import { adminApi, getNoticeList, request, userApi } from '../apis';
 import { formatNoticeListForDashboard } from '../utils/noticeFormatter';
+import { isAdminLike, isSuperadmin, normalizeRole } from '../utils/roleUtils';
 import AppSidebar from './dashboard/AppSidebar.vue';
 import AppHeader from './dashboard/AppHeader.vue';
 import OverviewPanel from './dashboard/panels/OverviewPanel.vue';
@@ -36,7 +37,7 @@ const { t, locale } = useI18n();
 
 const sidebarCollapsed = ref(false);
 const activeTab = ref('overview');
-const role = ref('user');
+const role = ref('staff');
 const dashboardData = ref(null);
 const rawNotices = ref([]);
 const loading = ref(true);
@@ -52,8 +53,7 @@ function buildTodayParam() {
 
 async function fetchTodayAttendanceCount(currentRole) {
     const date = buildTodayParam();
-    const isAdmin = currentRole === 'admin';
-    const url = isAdmin ? '/api/admin/attendance' : '/api/user/attendance/my';
+    const url = isAdminLike(currentRole) ? '/api/admin/attendance' : '/api/user/attendance/my';
     const payload = await request({
         url,
         method: 'GET',
@@ -75,10 +75,25 @@ function decodeJwtRole(token) {
         // base64url -> base64
         const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(atob(base64));
-        return payload.role || 'user';
+        return payload.role || 'staff';
     } catch {
-        return 'user';
+        return 'staff';
     }
+}
+
+function resolveInitialRole() {
+    const storedRole = normalizeRole(authStore.role);
+    if (storedRole) {
+        return storedRole;
+    }
+
+    const decodedRole = normalizeRole(decodeJwtRole(authStore.token));
+    if (decodedRole) {
+        authStore.setRole(decodedRole, { persistence: authStore.persistence });
+        return decodedRole;
+    }
+
+    return 'staff';
 }
 
 async function init() {
@@ -87,7 +102,7 @@ async function init() {
         return;
     }
 
-    role.value = decodeJwtRole(authStore.token);
+    role.value = resolveInitialRole();
 
     try {
         await refreshDashboardData({ includeNotices: true, setLoading: true });
@@ -107,8 +122,9 @@ async function refreshDashboardData({ includeNotices = false, setLoading = false
     }
 
     try {
-        const dashboardPromise =
-            role.value === 'admin' ? adminApi.getAdminDashboard() : userApi.getUserDashboard();
+        const dashboardPromise = isAdminLike(role.value)
+            ? adminApi.getAdminDashboard()
+            : userApi.getUserDashboard();
         const noticePromise = includeNotices
             ? getNoticeList({ page: 1, page_size: 5 })
             : Promise.resolve(null);
@@ -122,10 +138,11 @@ async function refreshDashboardData({ includeNotices = false, setLoading = false
 
         if (dashboardResult.status === 'fulfilled') {
             dashboardPayload = dashboardResult.value;
-        } else if (role.value === 'admin') {
+        } else if (isAdminLike(role.value) && !isSuperadmin(role.value)) {
             try {
                 dashboardPayload = await userApi.getUserDashboard();
-                role.value = 'user';
+                role.value = 'staff';
+                authStore.setRole(role.value, { persistence: authStore.persistence });
             } catch {
                 dashboardPayload = null;
             }
@@ -166,7 +183,7 @@ const navItems = computed(() => {
         { key: 'profile', label: t('dashboard.nav.profile'), icon: User },
         { key: 'permission', label: t('dashboard.nav.permission'), icon: Key },
     ];
-    if (role.value === 'admin') {
+    if (isAdminLike(role.value)) {
         items.splice(
             3,
             0,

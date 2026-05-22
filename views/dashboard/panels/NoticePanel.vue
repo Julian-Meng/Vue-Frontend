@@ -5,13 +5,14 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { getNoticeList, adminApi } from '../../../apis';
 import { formatNoticeListForDashboard } from '../../../utils/noticeFormatter';
 import { exportToExcel } from '../../../utils/excelExport';
+import { isAdminLike } from '../../../utils/roleUtils';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
 });
 const { t, locale } = useI18n();
 
-const isAdmin = () => props.role === 'admin';
+const isAdmin = () => isAdminLike(props.role);
 const isReadOnly = computed(() => !isAdmin());
 const noticeModalTitle = computed(() => {
     if (!editTarget.value) {

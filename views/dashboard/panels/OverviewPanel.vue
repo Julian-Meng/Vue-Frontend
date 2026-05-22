@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { isAdminLike, isSuperadmin, normalizeRole } from '../../../utils/roleUtils';
 
 const props = defineProps({
     role: { type: String, default: 'user' },
@@ -10,9 +11,19 @@ const props = defineProps({
 const emit = defineEmits(['open-tab']);
 const { t, locale } = useI18n();
 
-const roleLabel = computed(() =>
-    props.role === 'admin' ? t('dashboard.roleAdmin') : t('dashboard.roleUser')
-);
+const normalizedRole = computed(() => normalizeRole(props.role));
+const roleLabel = computed(() => {
+    if (isSuperadmin(normalizedRole.value)) {
+        return t('dashboard.roleSuperadmin');
+    }
+
+    if (isAdminLike(normalizedRole.value)) {
+        return t('dashboard.roleAdmin');
+    }
+
+    return t('dashboard.roleUser');
+});
+const isAdminRole = computed(() => isAdminLike(normalizedRole.value));
 
 const weatherLoading = ref(false);
 const weatherError = ref('');
@@ -183,7 +194,7 @@ onMounted(fetchWeather);
                 <h2 class="hero-title">{{ t('dashboard.overview.title') }}</h2>
                 <p class="hero-sub">
                     {{
-                        role === 'admin'
+                        isAdminRole
                             ? t('dashboard.overview.adminSub')
                             : t('dashboard.overview.userSub')
                     }}
